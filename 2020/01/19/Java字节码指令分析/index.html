@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="JVM,Java字节码,Java虚拟机,class文件," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Java字节码指令分析1、概念​分析字节码指令之前，先明确以下几个概念； 1.1、程序计数器​JVM中的程序计数器，执行非native方式时，程序计数器保存Java虚拟机正在执行的字节码指令地址，对于native方法，保存的值是undefined； 1.2、虚拟机栈​线程私有，用于存储栈帧，只收栈帧出栈和入栈影响，活动线程中，只有位于栈顶的栈帧才是有效的，称为当前栈帧，与这个栈帧相关联的方法称为当">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java字节码指令分析">
+<meta property="og:url" content="http://yoursite.com/2020/01/19/Java%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="Java字节码指令分析1、概念​分析字节码指令之前，先明确以下几个概念； 1.1、程序计数器​JVM中的程序计数器，执行非native方式时，程序计数器保存Java虚拟机正在执行的字节码指令地址，对于native方法，保存的值是undefined； 1.2、虚拟机栈​线程私有，用于存储栈帧，只收栈帧出栈和入栈影响，活动线程中，只有位于栈顶的栈帧才是有效的，称为当前栈帧，与这个栈帧相关联的方法称为当">
+<meta property="og:image" content="http://yoursite.com/images/jvm_001.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_002.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_003.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_004.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_005.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_006.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_007.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_008.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_009.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_010.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_011.png">
+<meta property="og:image" content="http://yoursite.com/images/jvm_012.png">
+<meta property="article:published_time" content="2020-01-19T07:36:57.000Z">
+<meta property="article:modified_time" content="2020-01-19T08:07:24.582Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="JVM">
+<meta property="article:tag" content="Java字节码">
+<meta property="article:tag" content="Java虚拟机">
+<meta property="article:tag" content="class文件">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/jvm_001.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/01/19/Java字节码指令分析/"/>
+
+
+
+
+
+  <title>Java字节码指令分析 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/Java%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Java字节码指令分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-01-19T15:36:57+08:00">
+                2020-01-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JVM/" itemprop="url" rel="index">
+                    <span itemprop="name">JVM</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/01/19/Java%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%88%86%E6%9E%90/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/01/19/Java%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%88%86%E6%9E%90/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/01/19/Java%E5%AD%97%E8%8A%82%E7%A0%81%E6%8C%87%E4%BB%A4%E5%88%86%E6%9E%90/" class="leancloud_visitors" data-flag-title="Java字节码指令分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Java字节码指令分析"><a href="#Java字节码指令分析" class="headerlink" title="Java字节码指令分析"></a>Java字节码指令分析</h1><h2 id="1、概念"><a href="#1、概念" class="headerlink" title="1、概念"></a>1、概念</h2><p>​分析字节码指令之前，先明确以下几个概念；</p>
+<h3 id="1-1、程序计数器"><a href="#1-1、程序计数器" class="headerlink" title="1.1、程序计数器"></a>1.1、程序计数器</h3><p>​JVM中的程序计数器，执行非native方式时，程序计数器保存Java虚拟机正在执行的字节码指令地址，对于native方法，保存的值是undefined；</p>
+<h3 id="1-2、虚拟机栈"><a href="#1-2、虚拟机栈" class="headerlink" title="1.2、虚拟机栈"></a>1.2、虚拟机栈</h3><p>​线程私有，用于存储栈帧，只收栈帧出栈和入栈影响，活动线程中，只有位于栈顶的栈帧才是有效的，称为当前栈帧，与这个栈帧相关联的方法称为当前方法；</p>
+<h3 id="1-3、栈帧"><a href="#1-3、栈帧" class="headerlink" title="1.3、栈帧"></a>1.3、栈帧</h3><p>​栈帧(Stack Frame)是用于支持虚拟机进行方法调用和方法执行的数据结构，是虚拟机运行时数据区中的虚拟机栈的栈元素，栈帧存储了方法的局部变量表、操作数栈、动态连接和方法返回地址（以及附加信息）等信息，每一个方法从调用至执行完成的过程，都对应着一个栈帧在虚拟机栈里从入栈到出栈的过程，栈帧随方法的调用而创建，随方法的结束而销毁（无论方法正常结束还是异常退出都算结束）；</p>
+<p>​每一个栈帧都有自己的本地变量表、操作数栈、指向当前方法所属的类的运行时常量池的引用；</p>
+<h4 id="1-3-1、局部变量表"><a href="#1-3-1、局部变量表" class="headerlink" title="1.3.1、局部变量表"></a>1.3.1、局部变量表</h4><p>​每个栈帧中包含一个局部变量表，长度由编译期决定，并且存储于类或接口的二进制表中，即通过方法的code属性保存及提供给栈帧使用；</p>
+<p>​局部变量表的存储单位为Slot，对于不超过32位的数据类型占用1个单位的Slot，64位类型的则占2个（long类型、double类型），虚拟机通过索引定位的方式使用局部变量表，索引值的范围是从0到局部变量表最大的Slot数量；</p>
+<p>​执行非static方法时，局部变量表中索引为0的Slot默认是用于传递方法所属对象示例的引用，在方法中可以通过关键字“this”来访问这个隐含的参数；</p>
+<p>​局部变量表中的Slot是可重用的，当程序计数器的值已经超过某个变量的作用域时，这个变量对应的Slot可以交给其他变量使用；</p>
+<h4 id="1-3-2、操作数栈"><a href="#1-3-2、操作数栈" class="headerlink" title="1.3.2、操作数栈"></a>1.3.2、操作数栈</h4><p>​每个栈帧内都有一个操作数栈，后进先出，其最大深度由编译器决定，并且通过放的code属性保存及提供给栈使用；</p>
+<p>​操作数栈中的每个位置可以保存一个Java虚拟机中定义的任意数据类型的值，并且在任意时刻操作数栈都有一个确定的栈深度，一个long或者double类型的数据会占用两个单位的栈深度，其他数据类型则会占用一个单位的栈深度；</p>
+<h4 id="1-3-3、动态链接"><a href="#1-3-3、动态链接" class="headerlink" title="1.3.3、动态链接"></a>1.3.3、动态链接</h4><p>​每个战争内部都包含一个指向当年情方法所在类型的运行时常量池的引用，以便对当前方法的代码实现动态链接，在class文件里面，一个方法若要调用其他方法或者访问成员变量，则需要通过符号引用来表示，动态链接的作用就是将这些以符号引用所表示的的方法转换为对实际方法的直接引用，类加载的过程中将要解析尚未被解析的符号引用，并且将对变量的访问变量的访问转化为变量在程序运行时，位于存储结构中的正确偏移量。</p>
+<h3 id="1-4、指令"><a href="#1-4、指令" class="headerlink" title="1.4、指令"></a>1.4、指令</h3><p>​Java虚拟机的指令由一个字节长度的、代表某种特定操作含义的操作码，以及跟随其后的零至多个代表此操作所需参数的操作数所构成，许多指令并不包含操作数，只有一个操作码；        </p>
+<h2 id="2、方法解析"><a href="#2、方法解析" class="headerlink" title="2、方法解析"></a>2、方法解析</h2><p>​在解析的阶段，如果方法在程序真运行之前就有一个可确定的调用版本，并且这个方法的调用版本在运行期是不可改变的，在类加载的解析阶段，会将其中的一部分符号引用转化为直接引用，在Java中符合这种“编译期可知，运行期不可变”的方法，主要包括静态方法和私有方法两大类，他们都不可能通过继承或别的方式重写其他版本所以都适合在类加载阶段进行解析；</p>
+<p>验证：</p>
+<h3 id="2-1、公有方法编译"><a href="#2-1、公有方法编译" class="headerlink" title="2.1、公有方法编译"></a>2.1、公有方法编译</h3><p>java文件：</p>
+<pre><code>public class Test {
+
+  public void main(String[] args) {
+    int i = this.addTest();
+  }
+
+  public int addTest() {
+    int a1 = 200;
+    int a2 = 404;
+    int a3 = 500;
+    return a1 + a2 + a3;
+  }
+}</code></pre><p>汇编代码：</p>
+<pre><code>xxxMacBook-Pro:JVM_test xxx$ javap -v Test.class 
+Classfile /Users/xxx/xxx/test/JVM_test/Test.class
+  Last modified 2019-12-12; size 371 bytes
+  MD5 checksum 6fd0f3f4b59fe92defcba034fd98f2f9
+  Compiled from &quot;Test.java&quot;
+public class com.jesus.util.Test
+  minor version: 0
+  major version: 52
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #4.#15         // java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+   #2 = Methodref          #3.#16         // com/jesus/util/Test.addTest:()I
+   #3 = Class              #17            // com/jesus/util/Test
+   #4 = Class              #18            // java/lang/Object
+   #5 = Utf8               &lt;init&gt;
+   #6 = Utf8               ()V
+   #7 = Utf8               Code
+   #8 = Utf8               LineNumberTable
+   #9 = Utf8               main
+  #10 = Utf8               ([Ljava/lang/String;)V
+  #11 = Utf8               addTest
+  #12 = Utf8               ()I
+  #13 = Utf8               SourceFile
+  #14 = Utf8               Test.java
+  #15 = NameAndType        #5:#6          // &quot;&lt;init&gt;&quot;:()V
+  #16 = NameAndType        #11:#12        // addTest:()I
+  #17 = Utf8               com/jesus/util/Test
+  #18 = Utf8               java/lang/Object
+{
+  public com.jesus.util.Test();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=3, args_size=2
+         0: aload_0
+         1: invokevirtual #2                  // Method addTest:()I
+         4: istore_2
+         5: return
+      LineNumberTable:
+        line 6: 0
+        line 7: 5
+
+  public int addTest();
+    descriptor: ()I
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=4, args_size=1
+         0: sipush        200
+         3: istore_1
+         4: sipush        404
+         7: istore_2
+         8: sipush        500
+        11: istore_3
+        12: iload_1
+        13: iload_2
+        14: iadd
+        15: iload_3
+        16: iadd
+        17: ireturn
+      LineNumberTable:
+        line 10: 0
+        line 11: 4
+        line 12: 8
+        line 14: 12
+}
+SourceFile: &quot;Test.java&quot;</code></pre><h3 id="2-2、私有方法编译"><a href="#2-2、私有方法编译" class="headerlink" title="2.2、私有方法编译"></a>2.2、私有方法编译</h3><p>java文件：</p>
+<pre><code>public class Test {
+
+  public void main(String[] args) {
+    int i = this.addTest();
+  }
+
+  private int addTest() {
+    int a1 = 200;
+    int a2 = 404;
+    int a3 = 500;
+    return a1 + a2 + a3;
+  }
+}</code></pre><p>汇编代码：</p>
+<pre><code>xxxMacBook-Pro:JVM_test xxx$ javap -v Test.class 
+Classfile /Users/xxx/xxx/test/JVM_test/Test.class
+  Last modified 2019-12-12; size 371 bytes
+  MD5 checksum 95f972b8e292084a943c51acb9c88dad
+  Compiled from &quot;Test.java&quot;
+public class com.jesus.util.Test
+  minor version: 0
+  major version: 52
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #4.#15         // java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+   #2 = Methodref          #3.#16         // com/jesus/util/Test.addTest:()I
+   #3 = Class              #17            // com/jesus/util/Test
+   #4 = Class              #18            // java/lang/Object
+   #5 = Utf8               &lt;init&gt;
+   #6 = Utf8               ()V
+   #7 = Utf8               Code
+   #8 = Utf8               LineNumberTable
+   #9 = Utf8               main
+  #10 = Utf8               ([Ljava/lang/String;)V
+  #11 = Utf8               addTest
+  #12 = Utf8               ()I
+  #13 = Utf8               SourceFile
+  #14 = Utf8               Test.java
+  #15 = NameAndType        #5:#6          // &quot;&lt;init&gt;&quot;:()V
+  #16 = NameAndType        #11:#12        // addTest:()I
+  #17 = Utf8               com/jesus/util/Test
+  #18 = Utf8               java/lang/Object
+{
+  public com.jesus.util.Test();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=3, args_size=2
+         0: aload_0
+         1: invokespecial #2                  // Method addTest:()I
+         4: istore_2
+         5: return
+      LineNumberTable:
+        line 6: 0
+        line 7: 5
+}
+SourceFile: &quot;Test.java&quot;</code></pre><h2 id="3、编译代码"><a href="#3、编译代码" class="headerlink" title="3、编译代码"></a>3、编译代码</h2><h3 id="3-1、Java文件"><a href="#3-1、Java文件" class="headerlink" title="3.1、Java文件"></a>3.1、Java文件</h3><pre><code>public class Demo {
+
+  public String sayHello() {
+    String str1 = &quot;Hello&quot;;
+    String str2 = &quot;World&quot;;
+    String str3 = &quot;!&quot;;
+    return str1 + str2 + str3;
+  } 
+}</code></pre><h3 id="3-2、指令"><a href="#3-2、指令" class="headerlink" title="3.2、指令"></a>3.2、指令</h3><p>使用命令javac Demo.java将其编译为.class文件，再通过javap -c Demo.class命令来打印出该类的指令集，关于javap一般用到以下几个命令：</p>
+<pre><code>javap -c xxx.class  // 反编译生成汇编代码
+javap -l xxx.class  // 输出行号和本地变量表信息
+javap -v xxx.class  // 不仅会输出行号、本地变量表信息、反编译汇编代码，还会输出当前类用到的常量池等信息</code></pre><p>汇编代码：</p>
+<pre><code>xxxdeMacBook-Pro:xxx xxx$ javap -v Demo.class 
+Classfile /Users/xxx/xxx/test/Demo.class
+  Last modified 2019-12-12; size 464 bytes
+  MD5 checksum 4a27abd7c7fc5b1016fb72453de95fa7
+  Compiled from &quot;Demo.java&quot;
+public class com.xxx.xxx.Demo
+  minor version: 0
+  major version: 52
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #10.#19        // java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+   #2 = String             #20            // Hello
+   #3 = String             #21            // World
+   #4 = String             #22            // !
+   #5 = Class              #23            // java/lang/StringBuilder
+   #6 = Methodref          #5.#19         // java/lang/StringBuilder.&quot;&lt;init&gt;&quot;:()V
+   #7 = Methodref          #5.#24         // java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+   #8 = Methodref          #5.#25         // java/lang/StringBuilder.toString:()Ljava/lang/String;
+   #9 = Class              #26            // com/jesus/util/Demo
+  #10 = Class              #27            // java/lang/Object
+  #11 = Utf8               &lt;init&gt;
+  #12 = Utf8               ()V
+  #13 = Utf8               Code
+  #14 = Utf8               LineNumberTable
+  #15 = Utf8               sayHello
+  #16 = Utf8               ()Ljava/lang/String;
+  #17 = Utf8               SourceFile
+  #18 = Utf8               Demo.java
+  #19 = NameAndType        #11:#12        // &quot;&lt;init&gt;&quot;:()V
+  #20 = Utf8               Hello
+  #21 = Utf8               World
+  #22 = Utf8               !
+  #23 = Utf8               java/lang/StringBuilder
+  #24 = NameAndType        #28:#29        // append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+  #25 = NameAndType        #30:#16        // toString:()Ljava/lang/String;
+  #26 = Utf8               com/jesus/util/Demo
+  #27 = Utf8               java/lang/Object
+  #28 = Utf8               append
+  #29 = Utf8               (Ljava/lang/String;)Ljava/lang/StringBuilder;
+  #30 = Utf8               toString
+{
+  public com.jesus.util.Demo();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public java.lang.String sayHello();
+    descriptor: ()Ljava/lang/String;
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=4, args_size=1
+         0: ldc           #2                  // String Hello
+         2: astore_1
+         3: ldc           #3                  // String World
+         5: astore_2
+         6: ldc           #4                  // String !
+         8: astore_3
+         9: new           #5                  // class java/lang/StringBuilder
+        12: dup
+        13: invokespecial #6                  // Method java/lang/StringBuilder.&quot;&lt;init&gt;&quot;:()V
+        16: aload_1
+        17: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        20: aload_2
+        21: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        24: aload_3
+        25: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        28: invokevirtual #8                  // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+        31: areturn
+      LineNumberTable:
+        line 6: 0
+        line 7: 3
+        line 8: 6
+        line 10: 9
+}
+SourceFile: &quot;Demo.java&quot;</code></pre><h2 id="4、指令解析"><a href="#4、指令解析" class="headerlink" title="4、指令解析"></a>4、指令解析</h2><p>sayHello方法字节码文件：</p>
+<pre><code>0x0001 000f 0010 0001 000d 0000 0044 0002 0004 0000 0020 1202 4c12 034d 1204 4ebb 0005 59b7 0006 2bb6 0007 2cb6 0007 2db6 0007 b600 08b0 0000 0001 000e 0000 0012 0004 0000 0006 0003 0007 0006 0008 0009 000a</code></pre><p>sayHello方法字节码指令：</p>
+<pre><code>Code:
+    stack=2, locals=4, args_size=1
+    0: ldc           #2                  // String Hello
+    2: astore_1
+    3: ldc           #3                  // String World
+    5: astore_2
+    6: ldc           #4                  // String !
+    8: astore_3
+    9: new           #5                  // class java/lang/StringBuilder
+    12: dup
+    13: invokespecial #6                  // Method java/lang/StringBuilder.&quot;&lt;init&gt;&quot;:()V
+    16: aload_1
+    17: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    20: aload_2
+    21: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    24: aload_3
+    25: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    28: invokevirtual #8                  // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+    31: areturn</code></pre><h3 id="4-1、基于栈的解释器执行"><a href="#4-1、基于栈的解释器执行" class="headerlink" title="4.1、基于栈的解释器执行"></a>4.1、基于栈的解释器执行</h3><h4 id="4-1-1、初始状态"><a href="#4-1-1、初始状态" class="headerlink" title="4.1.1、初始状态"></a>4.1.1、初始状态</h4><p>​当执行该构造方法时，当前线程的java虚拟机栈中入栈一个栈帧，代表该构造方法的栈帧，刚开始栈帧中的操作数栈为空，局部变量表中存储隐含的this参数，此时程序计数器记录的执行地址是0，如下图：</p>
+<p><img src="/images/jvm_001.png" alt=""></p>
+<h4 id="4-1-2、ldc"><a href="#4-1-2、ldc" class="headerlink" title="4.1.2、ldc"></a>4.1.2、ldc</h4><p>​idc，查询《深入理解Java虚拟机·附录B 虚拟机字节码指令表》可知，该指令对应的操作码为“0x12”，表示将int、float或String类型常量值从常量池中推送至栈顶，该指令操作后面跟一个字节的参数，对应class文件中的值为“0x12 02”，02为参数，指向常量池中索引为2的常量，即“Hello”，所以执行该指令就是将常量池中的常量“Hello”，压入操作数栈的栈顶，此时程序计数器记录地址偏移为0，如下图：</p>
+<p><img src="/images/jvm_002.png" alt=""></p>
+<h4 id="4-1-3、astore-1"><a href="#4-1-3、astore-1" class="headerlink" title="4.1.3、astore_1"></a>4.1.3、astore_1</h4><p>​查询指令表可知，该指令对应的操作码为“0x4c”，表示将栈顶引用类型数值存入第二个局部变量，因为此时局部变量表中第一个值为默认的隐含参数“this”，所以将操作数中的“Hello”出栈，并存储为局部变量表的第二个变量，此时程序计数器记录的地址偏移为2，如下图：</p>
+<p><img src="/images/jvm_003.png" alt=""></p>
+<h4 id="4-1-4、Idc、astore-2、Idc、astore-3"><a href="#4-1-4、Idc、astore-2、Idc、astore-3" class="headerlink" title="4.1.4、Idc、astore_2、Idc、astore_3"></a>4.1.4、Idc、astore_2、Idc、astore_3</h4><p>​此步骤操作循环上面两步，略，完成后结果如下图：</p>
+<p><img src="/images/jvm_004.png" alt=""></p>
+<h4 id="4-1-5、new"><a href="#4-1-5、new" class="headerlink" title="4.1.5、new"></a>4.1.5、new</h4><p>​new指令对应的操作码为“0xbb”，意为创建一个对象，并将其引用值压入栈顶，new指令后面跟着一个u2类型的2个字节的参数，即“0x0005”，指向常量池中索引为5的常量，是一个Class对象，查看后面引用可知为StringBuilder对象，此时声明了一个StringBuilder对象，并将其引用压入操作数栈，需要注意的是，此处只是声明了对象，并没有执行到具体初始化该对象的方法，此时程序计数器记录的地址偏移为9，如下图：</p>
+<p><img src="/images/jvm_005.png" alt=""></p>
+<h4 id="4-1-6、dup"><a href="#4-1-6、dup" class="headerlink" title="4.1.6、dup"></a>4.1.6、dup</h4><p>​该指令对应的操作码为“0x59”，意为复制栈顶数值并将复制的值压入栈顶，即将栈顶StringBuilder对象引用出栈，并复制，将复制的值重新压入操作数栈顶，此时程序计数器记录操作地址偏移为12，如下图：</p>
+<p><img src="/images/jvm_006.png" alt=""></p>
+<h4 id="4-1-7、invokespecial"><a href="#4-1-7、invokespecial" class="headerlink" title="4.1.7、invokespecial"></a>4.1.7、invokespecial</h4><p>​该指令的操作码为“0xb7”，意为调用超类构造方法、实例化初始化方法、私有方法，即真正意义上的实例化StringBuilder对象，此时栈顶的stringBuilder对象引用出栈，调用其实例化方法，并将执行结果返回到该处，该指令后面跟一个u2类型的2字节参数，“0x0006”，指向常量池中索引为6的常量，即“java/lang/StringBuilder.”<init>“:()V”，StringBuilder的实例化方法，此时程序计数器记录执行地址偏移为13，如下图：</p>
+<p><img src="/images/jvm_007.png" alt=""></p>
+<p>​执行到此处，由于调用StringBuilder的构造函数去创建StringBuilder对象，所以此时保存该栈帧的信息，新的栈帧入栈，即Java虚拟机栈中入栈表示执行StringBuilder构造方法的栈帧，为当前栈帧，执行完毕之后，该栈帧出栈，将创建的StringBuilder对象返回到该方法的调用处，即sayHello()方法的栈帧，此时该栈帧恢复，程序计数器中记录的当前栈帧的操作指令执行的地址偏移，所以可以恢复到该处继续执行；</p>
+<h4 id="4-1-8、aload-1"><a href="#4-1-8、aload-1" class="headerlink" title="4.1.8、aload_1"></a>4.1.8、aload_1</h4><p>​对应的操作码为“0x2b”，即将第二个引用类型的本地变量推送至栈顶，即将布局变量表中的第二个变量，索引为1的变量，也就是“Hello”，压入栈顶，此时程序计数器记录的指令操作地址偏移量为16，如下图：</p>
+<p><img src="/images/jvm_008.png" alt=""></p>
+<h4 id="4-1-9、invokevirtual"><a href="#4-1-9、invokevirtual" class="headerlink" title="4.1.9、invokevirtual"></a>4.1.9、invokevirtual</h4><p>​对应的操作码为“0xb6”，意为调用实例方法，该指令后面跟一个u2类型的2字节参数，即“0x0007”，指向常量池中索引为7的常量，值为“java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;”，也就是StringBuilder的append()方法，此时执行该方法，将“Hello”值赋值给stringBuilder对象，返回，该处也是新栈帧入栈，执行完毕出栈，回到sayHello()方法的栈帧继续执行，记录返回值，此时程序计数器记录的地址偏移为17，如下图：</p>
+<p><img src="/images/jvm_009.png" alt=""></p>
+<h4 id="4-1-10、aload-2、invokevirtual、aload-3、invokevirtual"><a href="#4-1-10、aload-2、invokevirtual、aload-3、invokevirtual" class="headerlink" title="4.1.10、aload_2、invokevirtual、aload_3、invokevirtual"></a>4.1.10、aload_2、invokevirtual、aload_3、invokevirtual</h4><p>​此处执行将剩余两个值“World”和“！”，与前面的“Hello”拼接，并保存到stringBuilder对象中，此时执行完程序计数器对应的地址偏移为25，如下图：</p>
+<p><img src="/images/jvm_010.png" alt=""></p>
+<h4 id="4-1-11、invokevirtual"><a href="#4-1-11、invokevirtual" class="headerlink" title="4.1.11、invokevirtual"></a>4.1.11、invokevirtual</h4><p>​对应的操作码为“0xb6”，意为调用实例方法，该指令后面跟一个u2类型的2字节参数，即“0x0008”，指向常量池中索引为8的常量，值为“java/lang/StringBuilder.toString:()Ljava/lang/String;”，也就是StringBuilder的toString()方法，此时执行该方法，将StringBuilder对象转为字符串，返回，该处也是新栈帧入栈，执行完毕出栈，回到sayHello()方法的栈帧继续执行，记录返回值，此时程序计数器记录的地址偏移为28，如下图：</p>
+<p><img src="/images/jvm_011.png" alt=""></p>
+<h4 id="4-1-12、areturn"><a href="#4-1-12、areturn" class="headerlink" title="4.1.12、areturn"></a>4.1.12、areturn</h4><p>​对应的操作码为“0xb0”，意为从当前方法返回对象引用，即将当前操作数栈定的stringBuilder对象出栈，并返回，此时操作数栈已经清空，此时程序计数器记录执行地址偏移为31，如下图：</p>
+<p><img src="/images/jvm_012.png" alt=""></p>
+<p>​此时已经执行到return指令意为该方法执行结束，此时该栈帧从Java虚拟机栈中出栈，此时局部变量也已经销毁，所以在方法执行完之后，局部变量就没有用了，若此时发生GC，这些对象将被回收；</p>
+<p>​通过以上执行指令分析，也可知道在Java代码中用“+”号将字符串拼接，在编译时会使用StringBuilder的append()方法执行；</p>
+<p>​以上分析完可知，字节码反编译的汇编代码，Code属性下面地址偏移的规律，从0位置开始，如果执行是后面带参数，参数所占的位置也会使地址偏移，例如“ldc”指令后面跟一个参数，其地址偏移一位，上面分析的第一步，所以第二步的“astore_1”指令的地址偏移为2，其中地址偏移为1的被参数占用，后面同理；</p>
+<h2 id="5、手动java到指令代码"><a href="#5、手动java到指令代码" class="headerlink" title="5、手动java到指令代码"></a>5、手动java到指令代码</h2><p>Java代码</p>
+<pre><code>public class Test {
+
+  public int addTest() {
+    int a1 = 20;
+    int a2 = 404;
+
+    return a1 + a2;
+  } 
+}</code></pre><p>​分析该方法，该方法访问权限为public，无参数（默认隐含一个this参数，存入局部变量表），返回值为int类型，该方法的步骤应该如下：</p>
+<ul>
+<li><p>首先应该是分别将两个int类型的值存入到局部变量表中，即从操作数栈出栈，存入局部变量表；</p>
+</li>
+<li><p>然后从局部变量表中分别取出两个变量；</p>
+</li>
+<li><p>执行相加操作；</p>
+</li>
+<li><p>执行返回；</p>
+<p>  // 20属于单字节常量，将其压入操作数栈顶，后面跟上20的值<br>  bipush 20<br>  // 将操作数栈顶出栈，存储到局部变量中第二个位置，第一个位置为this<br>  istore_1<br>  // 404属于短整型常量，将其压入操作数栈顶，后面跟上404的值<br>  sipush 404<br>  // 将操作数栈顶出栈，存储到局部变量中第三个位置<br>  istore_1<br>  // 加载局部变量表中的第二个值到操作数栈顶，即20<br>  iload_1<br>  // 加载局部变量表中的第三个值到操作数栈顶，即404<br>  iload_2<br>  // 执行相加操作<br>  iadd<br>  // 将操作的值返回<br>  ireturn</p>
+</li>
+</ul>
+<p>​以上皆为查询《深入理解Java虚拟机·附录B 虚拟机字节码指令表》对照相应的操作指令，然后将Java文件编译为class文件，执行命令javap -v打印出该类的指令代码，然后对比分析，本方法用了两个局部变量，加上this，一共需要三个局部变量位置，所以局部变量表大小为3，执行过程中，最大栈深度为2，即将两个变量都加载到操作数栈时，也就是执行相加的前一步；</p>
+<p>字节码指令：</p>
+<pre><code>Code:
+    stack=2, locals=3, args_size=1
+    0: bipush        20
+    2: istore_1
+    3: sipush        404
+    6: istore_2
+    7: iload_1
+    8: iload_2
+    9: iadd
+    10: ireturn</code></pre><h2 id="6、手动Java到字节码"><a href="#6、手动Java到字节码" class="headerlink" title="6、手动Java到字节码"></a>6、手动Java到字节码</h2><p>​以上方法，对照之前写过的class文件解析，将其手动翻译为字节码文件，以下是需要用到的class文件分析方法时的表结构；</p>
+<p>方法表结构：</p>
+<pre><code>{
+    u2             access_flags; // 访问限定符
+    u2             name_index; // 名称索引
+    u2             descripotr_index; // 描述符索引
+    u2             attributes_count; // 属性数量
+    attribute_info attributes; // 属性表集合
+}</code></pre><p>Code代码属性表结构：</p>
+<pre><code>{
+    u2             attribute_name_index; // 固定为”Code“，表示属性名称
+    u4             attribute_length; // 该属性值的长度
+    u2             max_stack; // 操作数栈深度的最大值，根据该值来分配栈帧中的操作站深度
+    u2             max_locals; // 局部变量表所需的存储空间
+    u4             code_length; // 字节码长度
+    u1             code; // 存储java源程序编译后的字节码指令
+    u2             exception_table_length; //
+    exception_info exception_table; //
+    u2             attribute_count; //
+    attribute_info attributes; //
+}</code></pre><p>手动翻译：</p>
+<pre><code>// 方法修饰符public，u2类型，只有public属性，查询PUBLIC对应的十六进制码
+0x0001
+// 接下来方法名索引和方法描述索引都为u2类型，需要对照常量池，所以这里用a占位
+0xaaaa aaaa
+// u2类型的属性数量暂时不统计，用b占位
+0xbbbb
+// 接着分析方法表属性，Code属性名固定u2类型，值也为固定，但需要对应常量池中索引，所以用c占位
+0xcccc
+// 属性值长度，固定u4类型，暂不统计，d占位
+0xdddd dddd
+// 接下来分别是两个u2类型的栈深度和本地变量表大小，有上面可知栈深度为2，局部变量表大小为3
+0x0002 0003
+// u4类型的字节码长度，暂不统计，e占位
+0xeeee eeee
+// 接着是分别分析u1类型的code指令，对照指令表查询操作码
+// bipush操作码为0x10，后面跟单字节值20，十六进制为0x14
+0x1014
+// istore_1操作码为0x3c
+0x3c
+// sipush操作码为0x11，后面跟一个短整型参数404，需要两个字节表示，单字节-128~127，即0x0194
+0x11 0194
+// istore_2操作码为0x3d
+0x3d
+// 接下来两个iload_1、iload_2分别操作码为0x1b、0x1c
+0x1b1c
+// iadd相加，操作码为0x60
+0x60
+// 返回ireturn对应操作码为0xac
+0xac
+// 无try catch，无抛出异常，u2类型异常长度为0
+0x0000
+
+
+// 后面省略...所以最终的字节码分析为：
+0x0001 aaaa aaaa bbbb cccc dddd dddd 0002 0003 eeee eeee 1014 3c11 0194 3d1b 1c60 ac00 00...</code></pre><p>​使用命令javac编译该java代码，打开字节码指令，按class文件类结构找到该方法对应的所有字节码，如下：</p>
+<p>class文件：</p>
+<pre><code>0x0001 0008 0009 0001 0006 0000 002b 0002 0003 0000 000b 1014 3c11 0194 3d1b 1c60 ac00 0000 0100 0700 0000 0e00 0300 0000 0600 0300 0700 0700 09</code></pre><p>对比可知，常量池中的索引无法确定，方法的字节码指令是一致的，即“0x1014 3c11 0194 3d1b 1c60 ac”；</p>
+<p>参考书籍：</p>
+<p>​    《深入理解Java虚拟机》</p>
+<p>​    《Java虚拟机规范 Java SE 8版》</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/JVM/" rel="tag"># JVM</a>
+          
+            <a href="/tags/Java%E5%AD%97%E8%8A%82%E7%A0%81/" rel="tag"># Java字节码</a>
+          
+            <a href="/tags/Java%E8%99%9A%E6%8B%9F%E6%9C%BA/" rel="tag"># Java虚拟机</a>
+          
+            <a href="/tags/class%E6%96%87%E4%BB%B6/" rel="tag"># class文件</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/Hexo%E6%90%AD%E5%BB%BAGithub-pages%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2/" rel="next" title="Hexo搭建Github-pages个人博客">
+                <i class="fa fa-chevron-left"></i> Hexo搭建Github-pages个人博客
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/19/Java%E7%BC%96%E8%AF%91%E5%90%8E%E7%9A%84class%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90/" rel="prev" title="Java编译后的class文件解析">
+                Java编译后的class文件解析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Java字节码指令分析"><span class="nav-text">Java字节码指令分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、概念"><span class="nav-text">1、概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1、程序计数器"><span class="nav-text">1.1、程序计数器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2、虚拟机栈"><span class="nav-text">1.2、虚拟机栈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3、栈帧"><span class="nav-text">1.3、栈帧</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1、局部变量表"><span class="nav-text">1.3.1、局部变量表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2、操作数栈"><span class="nav-text">1.3.2、操作数栈</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3、动态链接"><span class="nav-text">1.3.3、动态链接</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4、指令"><span class="nav-text">1.4、指令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、方法解析"><span class="nav-text">2、方法解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、公有方法编译"><span class="nav-text">2.1、公有方法编译</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、私有方法编译"><span class="nav-text">2.2、私有方法编译</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3、编译代码"><span class="nav-text">3、编译代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1、Java文件"><span class="nav-text">3.1、Java文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2、指令"><span class="nav-text">3.2、指令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4、指令解析"><span class="nav-text">4、指令解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1、基于栈的解释器执行"><span class="nav-text">4.1、基于栈的解释器执行</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1、初始状态"><span class="nav-text">4.1.1、初始状态</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2、ldc"><span class="nav-text">4.1.2、ldc</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-3、astore-1"><span class="nav-text">4.1.3、astore_1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-4、Idc、astore-2、Idc、astore-3"><span class="nav-text">4.1.4、Idc、astore_2、Idc、astore_3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-5、new"><span class="nav-text">4.1.5、new</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-6、dup"><span class="nav-text">4.1.6、dup</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-7、invokespecial"><span class="nav-text">4.1.7、invokespecial</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-8、aload-1"><span class="nav-text">4.1.8、aload_1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-9、invokevirtual"><span class="nav-text">4.1.9、invokevirtual</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-10、aload-2、invokevirtual、aload-3、invokevirtual"><span class="nav-text">4.1.10、aload_2、invokevirtual、aload_3、invokevirtual</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-11、invokevirtual"><span class="nav-text">4.1.11、invokevirtual</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-12、areturn"><span class="nav-text">4.1.12、areturn</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5、手动java到指令代码"><span class="nav-text">5、手动java到指令代码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6、手动Java到字节码"><span class="nav-text">6、手动Java到字节码</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

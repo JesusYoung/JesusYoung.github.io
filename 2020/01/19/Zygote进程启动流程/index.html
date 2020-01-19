@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android系统启动,App启动流程,Android源码," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="文章已同步CSDN：Zygote进程启动流程 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、Zygote进程Zygote是在init进程启动时创建的，它又称为孵化器，它可以通过fork（复制进程）的形式来创建应用程序进程和SystemServer进程，并且，Zygo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Zygote进程启动流程">
+<meta property="og:url" content="http://yoursite.com/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="文章已同步CSDN：Zygote进程启动流程 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、Zygote进程Zygote是在init进程启动时创建的，它又称为孵化器，它可以通过fork（复制进程）的形式来创建应用程序进程和SystemServer进程，并且，Zygo">
+<meta property="article:published_time" content="2020-01-19T07:37:48.000Z">
+<meta property="article:modified_time" content="2020-01-19T08:33:27.795Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="Android系统启动">
+<meta property="article:tag" content="App启动流程">
+<meta property="article:tag" content="Android源码">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/01/19/Zygote进程启动流程/"/>
+
+
+
+
+
+  <title>Zygote进程启动流程 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Zygote进程启动流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-01-19T15:37:48+08:00">
+                2020-01-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" class="leancloud_visitors" data-flag-title="Zygote进程启动流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>文章已同步CSDN：<a href="https://blog.csdn.net/freelander_j/article/details/104021244" target="_blank" rel="noopener">Zygote进程启动流程</a></p>
+<p>使用到的相关源码：<a href="https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master" target="_blank" rel="noopener">https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master</a></p>
+<p>基于Android 9.0</p>
+<h2 id="1、Zygote进程"><a href="#1、Zygote进程" class="headerlink" title="1、Zygote进程"></a>1、Zygote进程</h2><p>Zygote是在init进程启动时创建的，它又称为孵化器，它可以通过fork（复制进程）的形式来创建应用程序进程和SystemServer进程，并且，Zygote进程在启动的时候会创建DVM或者ART，因此通过fork而创建的应用程序进程和SystemServer进程可以在内部获取一个DVM或者ART的实例副本；</p>
+<h2 id="2、Zygote进程启动流程"><a href="#2、Zygote进程启动流程" class="headerlink" title="2、Zygote进程启动流程"></a>2、Zygote进程启动流程</h2><h3 id="2-1、Init进程调用"><a href="#2-1、Init进程调用" class="headerlink" title="2.1、Init进程调用"></a>2.1、Init进程调用</h3><h4 id="2-1-1、解析配置参数"><a href="#2-1-1、解析配置参数" class="headerlink" title="2.1.1、解析配置参数"></a>2.1.1、解析配置参数</h4><p>Init进程启动之后，解析init.rc配置文件，执行其配置，其中有启动Zygote进程的参数配置，在app_main.cpp的main()方法中，先解析参数，例如在前面解析.rc文件时添加的参数“–zygote、—-start-system-server”等，初始化各种标识位；</p>
+<pre><code>int main(int argc, char* const argv[]) {
+  ...
+  ++i;  // Skip unused &quot;parent dir&quot; argument.
+  while (i &lt; argc) {
+    const char* arg = argv[i++];
+    if (strcmp(arg, &quot;--zygote&quot;) == 0) {
+      zygote = true;
+      niceName = ZYGOTE_NICE_NAME;
+    } else if (strcmp(arg, &quot;--start-system-server&quot;) == 0) {
+      startSystemServer = true;
+    } else if (strcmp(arg, &quot;--application&quot;) == 0) {
+      application = true;
+    } else if (strncmp(arg, &quot;--nice-name=&quot;, 12) == 0) {
+      niceName.setTo(arg + 12);
+    } else if (strncmp(arg, &quot;--&quot;, 2) != 0) {
+      className.setTo(arg);
+      break;
+    } else {
+      --i;
+      break;
+    }
+  }
+  ...
+}</code></pre><h4 id="2-1-2、启动Dalvik虚拟机"><a href="#2-1-2、启动Dalvik虚拟机" class="headerlink" title="2.1.2、启动Dalvik虚拟机"></a>2.1.2、启动Dalvik虚拟机</h4><p>接着判断className是否为空，在Zygote模式下，调用maybeCreateDalvikCache()函数创建Dalvik虚拟机缓存，添加启动systemServer的参数标识；</p>
+<pre><code>int main(int argc, char* const argv[]) {
+  ...
+  if (!className.isEmpty()) {
+    ...
+  } else {
+    // We&apos;re in zygote mode.
+    maybeCreateDalvikCache();
+    if (startSystemServer) {
+      args.add(String8(&quot;start-system-server&quot;));
+    }
+    char prop[PROP_VALUE_MAX];
+    if (property_get(ABI_LIST_PROPERTY, prop, NULL) == 0) {
+      LOG_ALWAYS_FATAL(&quot;app_process: Unable to determine ABI list from property %s.&quot;, ABI_LIST_PROPERTY);
+      return 11;
+    }
+    String8 abiFlag(&quot;--abi-list=&quot;);
+    abiFlag.append(prop);
+    args.add(abiFlag);
+    // In zygote mode, pass all remaining arguments to the zygote main() method.
+    // 在Zygote模式下，将剩余的参数全部传递过去
+    for (; i &lt; argc; ++i) {
+      args.add(String8(argv[i]));
+    }
+    ...
+  }
+}</code></pre><h3 id="2-2、启动Zygote"><a href="#2-2、启动Zygote" class="headerlink" title="2.2、启动Zygote"></a>2.2、启动Zygote</h3><h4 id="2-2-1、创建AppRunTime对象"><a href="#2-2-1、创建AppRunTime对象" class="headerlink" title="2.2.1、创建AppRunTime对象"></a>2.2.1、创建AppRunTime对象</h4><p>在main()函数中创建了AppRunTime对象，AppRunTime对象继承自AndroidRunTime类；</p>
+<pre><code>int main(int argc, char* const argv[]) {
+  ...
+  AppRuntime runtime(argv[0], computeArgBlockSize(argc, argv));
+  ...
+}
+
+class AppRuntime : public AndroidRuntime {
+  public:
+  AppRuntime(char* argBlockStart, const size_t argBlockLength)
+    : AndroidRuntime(argBlockStart, argBlockLength) , mClass(NULL) {
+    }
+  ...
+}</code></pre><h4 id="2-2-2、AppRunTime启动Zygote"><a href="#2-2-2、AppRunTime启动Zygote" class="headerlink" title="2.2.2、AppRunTime启动Zygote"></a>2.2.2、AppRunTime启动Zygote</h4><p>随后调用AppRunTime类的start()方法来启动Zygote进程，在前面判断中得知zygote参数为true；</p>
+<pre><code>if (zygote) {
+  runtime.start(&quot;com.android.internal.os.ZygoteInit&quot;, args, zygote);
+} else if (className) {
+  runtime.start(&quot;com.android.internal.os.RuntimeInit&quot;, args, zygote);
+} else {
+  ...
+}</code></pre><p>AppRunTime类继承自AndroidRunTime类，AppRunTime类并没有重载start()方法，所以这里执行的是AndroidRunnTime类的start()方法；</p>
+<h4 id="2-2-3、注册JNI"><a href="#2-2-3、注册JNI" class="headerlink" title="2.2.3、注册JNI"></a>2.2.3、注册JNI</h4><p>首先会初始化一些环境rootDir等，然后会启动虚拟机，调用startReg()函数向虚拟机注册Android Native方法；</p>
+<p>拿到前面传入的类名，即com.android.internal.os.ZygoteInit，通过JNI调用其main()方法，因为此处为C代码，而ZygoteInit为Java类，所以调用时需要使用JNI方式去调用，此时，正式从C层进入Java层；</p>
+<pre><code>class AppRuntime : public AndroidRuntime {}
+
+void AndroidRuntime::start(const char* className, const Vector&lt;String8&gt;&amp; options, bool zygote) {
+  ...
+  // 启动虚拟机
+  if (startVm(&amp;mJavaVM, &amp;env, zygote) != 0) {
+    return;
+  }
+  ...
+  // 向虚拟机注册Android Native方法
+  if (startReg(env) &lt; 0) {
+    ALOGE(&quot;Unable to register all android natives\n&quot;);
+    return;
+  }
+  ...
+  char* slashClassName = toSlashClassName(className != NULL ? className : &quot;&quot;);
+  jclass startClass = env-&gt;FindClass(slashClassName);
+  if (startClass == NULL) {
+    ...
+  } else {
+    // 找到main()方法
+    jmethodID startMeth = env-&gt;GetStaticMethodID(startClass, &quot;main&quot;, &quot;([Ljava/lang/String;)V&quot;);
+    if (startMeth == NULL) {
+      ...
+    } else {
+      // 调用ZygoteInit类的main()方法
+      env-&gt;CallStaticVoidMethod(startClass, startMeth, strArray);
+      #if 0
+      if (env-&gt;ExceptionCheck())
+        threadExitUncaughtException(env);
+      #endif
+    }
+  }
+  ...
+}</code></pre><h4 id="2-2-4、启动进入Java层Zygote"><a href="#2-2-4、启动进入Java层Zygote" class="headerlink" title="2.2.4、启动进入Java层Zygote"></a>2.2.4、启动进入Java层Zygote</h4><p>Zygote进程启动，在ZygoteInit的main()方法中，通过调用ZygoteHooks类的startZygoteNoThreadCreation()函数来抛出异常，标识Zygote进程已经启动；</p>
+<pre><code>public static void main(String argv[]) {
+  ZygoteServer zygoteServer = new ZygoteServer();
+  // Mark zygote start. This ensures that thread creation will throw
+  // an error.
+  ZygoteHooks.startZygoteNoThreadCreation();
+  ...
+}</code></pre><h3 id="2-3、创建Zygote进程Socket"><a href="#2-3、创建Zygote进程Socket" class="headerlink" title="2.3、创建Zygote进程Socket"></a>2.3、创建Zygote进程Socket</h3><h4 id="2-3-1、创建服务端socket"><a href="#2-3-1、创建服务端socket" class="headerlink" title="2.3.1、创建服务端socket"></a>2.3.1、创建服务端socket</h4><p>在ZygoteInit的main()函数中，创建了ZygoteServer对象，作为Zygote进程的socket通信的服务端，名为zygote，用来接收SystemServer进程向Zygote进程发来的请求，例如AMS向Zygote进程请求创建新应用等，接着调用runSelectLoop()来等待SystemServer进程发来的请求；</p>
+<pre><code>public static void main(String argv[]) {
+  ZygoteServer zygoteServer = new ZygoteServer();
+  ...
+  try {
+    ...
+    zygoteServer.registerServerSocketFromEnv(socketName);
+    ...
+    caller = zygoteServer.runSelectLoop(abiList);
+  }
+  ...
+  if (caller != null) {
+    caller.run();
+  }
+}
+
+// ZygoteServer 
+void registerServerSocketFromEnv(String socketName) {
+  if (mServerSocket == null) {
+    int fileDesc;
+    final String fullSocketName = ANDROID_SOCKET_PREFIX + socketName;
+    try {
+      String env = System.getenv(fullSocketName);
+      fileDesc = Integer.parseInt(env);
+    } catch (RuntimeException ex) {
+      throw new RuntimeException(fullSocketName + &quot; unset or invalid&quot;, ex);
+    }
+    try {
+      FileDescriptor fd = new FileDescriptor();
+      fd.setInt$(fileDesc);
+      mServerSocket = new LocalServerSocket(fd);
+      mCloseSocketFd = true;
+    } catch (IOException ex) {
+      throw new RuntimeException(&quot;Error binding to local socket &apos;&quot; + fileDesc + &quot;&apos;&quot;, ex);
+    }
+  }
+}</code></pre><h4 id="2-3-2、执行客户端请求"><a href="#2-3-2、执行客户端请求" class="headerlink" title="2.3.2、执行客户端请求"></a>2.3.2、执行客户端请求</h4><p>轮询客户端Socket消息，当客户端有新消息到来时，创建一个新的连接去执行客户端发来的请求，例如AMS请求创建新的进程；</p>
+<p>新建一个peers列表，用于存储每个客户端的连接，将fd数据转存到poolFds中，遍历，当i=0时表示有客户端与服务端连接成功，此时执行acceptCommandPeer()方法拿到新的连接，并将其存入到peers集合中，当i&gt;0时，表示客户端在向服务端传输数据，从peers中拿出与客户端的连接，执行processOneCommand()函数得到一个Runnable对象，如果是fork子进程并且任务不为null则返回该Runnable对象，在main()函数中，如果该对象不为空，就去执行其run()方法；</p>
+<pre><code>Runnable runSelectLoop(String abiList) {
+  ArrayList&lt;FileDescriptor&gt; fds = new ArrayList&lt;FileDescriptor&gt;();
+  ArrayList&lt;ZygoteConnection&gt; peers = new ArrayList&lt;ZygoteConnection&gt;();
+  fds.add(mServerSocket.getFileDescriptor());
+  peers.add(null);
+  while (true) {
+    StructPollfd[] pollFds = new StructPollfd[fds.size()];
+    for (int i = 0; i &lt; pollFds.length; ++i) {
+      pollFds[i] = new StructPollfd();
+      pollFds[i].fd = fds.get(i);
+      pollFds[i].events = (short) POLLIN;
+    }
+    ...
+    for (int i = pollFds.length - 1; i &gt;= 0; --i) {
+      ...
+      if (i == 0) {
+        ZygoteConnection newPeer = acceptCommandPeer(abiList);
+        peers.add(newPeer);
+        fds.add(newPeer.getFileDesciptor());
+      } else {
+        try {
+          ZygoteConnection connection = peers.get(i);
+          final Runnable command = connection.processOneCommand(this);
+          if (mIsForkChild) {
+            // We&apos;re in the child. We should always have a command to run at this
+            // stage if processOneCommand hasn&apos;t called &quot;exec&quot;.
+            if (command == null) {
+              throw new IllegalStateException(&quot;command == null&quot;);
+            }
+            return command;
+          } else {
+            // We&apos;re in the server - we should never have any commands to run.
+            if (command != null) {
+              throw new IllegalStateException(&quot;command != null&quot;);
+            }
+            // We don&apos;t know whether the remote side of the socket was closed or
+            // not until we attempt to read from it from processOneCommand. This shows up as
+            // a regular POLLIN event in our regular processing loop.
+            if (connection.isClosedByPeer()) {
+              connection.closeSocket();
+              peers.remove(i);
+              fds.remove(i);
+            }
+          }
+        }
+        ...
+      }
+    }
+  }
+}</code></pre><p>执行processOneCommand()方法时，创建fork子进程的Runnable对象，如果是在父进程中，则返回null，子进程中则会返回fork子进程的Runnable对象，去执行fork操作，并且清除掉fork过来的父进程中的socket信息；</p>
+<pre><code>Runnable processOneCommand(ZygoteServer zygoteServer) {
+  ...
+  pid = Zygote.forkAndSpecialize(parsedArgs.uid, parsedArgs.gid, parsedArgs.gids,
+                                 parsedArgs.runtimeFlags, rlimits, parsedArgs.mountExternal, 
+                                 parsedArgs.seInfo, parsedArgs.niceName, fdsToClose, 
+                                 fdsToIgnore, parsedArgs.startChildZygote,
+                                 parsedArgs.instructionSet, parsedArgs.appDataDir);
+  try {
+    if (pid == 0) {
+      // in child
+      zygoteServer.setForkChild();
+      zygoteServer.closeServerSocket();
+      IoUtils.closeQuietly(serverPipeFd);
+      serverPipeFd = null;
+      return handleChildProc(parsedArgs, descriptors, childPipeFd, parsedArgs.startChildZygote);
+    } else {
+      // In the parent. A pid &lt; 0 indicates a failure and will be handled in
+      // handleParentProc.
+      IoUtils.closeQuietly(childPipeFd);
+      childPipeFd = null;
+      handleParentProc(pid, descriptors, serverPipeFd);
+      return null;
+    }
+    ...
+}</code></pre><h3 id="2-4、启动SystemServer"><a href="#2-4、启动SystemServer" class="headerlink" title="2.4、启动SystemServer"></a>2.4、启动SystemServer</h3><p>Zygote进程启动后，执行ZygoteInit类的main()方法，启动会调用forkSystemServer()方法去通过fork自身的方式去创建SystemServer进程；</p>
+<pre><code>public static void main(String argv[]) {
+  ...
+  try {
+    ...
+    if (startSystemServer) {
+      Runnable r = forkSystemServer(abiList, socketName, zygoteServer);
+      // {@code r == null} in the parent (zygote) process, and {@code r != null} in the
+      // child (system_server) process.
+      if (r != null) {
+        r.run();
+        return;
+      }
+    }
+    ...
+  }
+  ...
+}</code></pre>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android%E7%B3%BB%E7%BB%9F%E5%90%AF%E5%8A%A8/" rel="tag"># Android系统启动</a>
+          
+            <a href="/tags/App%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="tag"># App启动流程</a>
+          
+            <a href="/tags/Android%E6%BA%90%E7%A0%81/" rel="tag"># Android源码</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/" rel="next" title="AIDL中的数据流向">
+                <i class="fa fa-chevron-left"></i> AIDL中的数据流向
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" rel="prev" title="SystemServer进程启动">
+                SystemServer进程启动 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、Zygote进程"><span class="nav-text">1、Zygote进程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、Zygote进程启动流程"><span class="nav-text">2、Zygote进程启动流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、Init进程调用"><span class="nav-text">2.1、Init进程调用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1、解析配置参数"><span class="nav-text">2.1.1、解析配置参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2、启动Dalvik虚拟机"><span class="nav-text">2.1.2、启动Dalvik虚拟机</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、启动Zygote"><span class="nav-text">2.2、启动Zygote</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1、创建AppRunTime对象"><span class="nav-text">2.2.1、创建AppRunTime对象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2、AppRunTime启动Zygote"><span class="nav-text">2.2.2、AppRunTime启动Zygote</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3、注册JNI"><span class="nav-text">2.2.3、注册JNI</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4、启动进入Java层Zygote"><span class="nav-text">2.2.4、启动进入Java层Zygote</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3、创建Zygote进程Socket"><span class="nav-text">2.3、创建Zygote进程Socket</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1、创建服务端socket"><span class="nav-text">2.3.1、创建服务端socket</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2、执行客户端请求"><span class="nav-text">2.3.2、执行客户端请求</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4、启动SystemServer"><span class="nav-text">2.4、启动SystemServer</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

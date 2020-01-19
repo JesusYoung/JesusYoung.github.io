@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android系统启动,App启动流程,Android源码," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="文章已同步CSDN：Launcher进程启动 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、LauncherLauncher作为Android系统的桌面，它的作用有两点：  作为Android系统的启动器，用于启动应用程序； 作为Android系统的桌面，用于显示和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Launcher进程启动">
+<meta property="og:url" content="http://yoursite.com/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="文章已同步CSDN：Launcher进程启动 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、LauncherLauncher作为Android系统的桌面，它的作用有两点：  作为Android系统的启动器，用于启动应用程序； 作为Android系统的桌面，用于显示和">
+<meta property="article:published_time" content="2020-01-19T07:38:18.000Z">
+<meta property="article:modified_time" content="2020-01-19T08:34:21.907Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="Android系统启动">
+<meta property="article:tag" content="App启动流程">
+<meta property="article:tag" content="Android源码">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/01/19/Launcher进程启动/"/>
+
+
+
+
+
+  <title>Launcher进程启动 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Launcher进程启动</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-01-19T15:38:18+08:00">
+                2020-01-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" class="leancloud_visitors" data-flag-title="Launcher进程启动">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>文章已同步CSDN：<a href="https://blog.csdn.net/freelander_j/article/details/104022030" target="_blank" rel="noopener">Launcher进程启动</a></p>
+<p>使用到的相关源码：<a href="https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master" target="_blank" rel="noopener">https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master</a></p>
+<p>基于Android 9.0</p>
+<h2 id="1、Launcher"><a href="#1、Launcher" class="headerlink" title="1、Launcher"></a>1、Launcher</h2><p>Launcher作为Android系统的桌面，它的作用有两点：</p>
+<ul>
+<li>作为Android系统的启动器，用于启动应用程序；</li>
+<li>作为Android系统的桌面，用于显示和管理应用程序的快捷图标或者其它桌面组件；</li>
+</ul>
+<h2 id="2、Launcher进程启动流程"><a href="#2、Launcher进程启动流程" class="headerlink" title="2、Launcher进程启动流程"></a>2、Launcher进程启动流程</h2><h3 id="2-1、SystemServer调用"><a href="#2-1、SystemServer调用" class="headerlink" title="2.1、SystemServer调用"></a>2.1、SystemServer调用</h3><p>在SystemServer进程启动之后，执行其run()函数，在里面执行了大量的配置设置操作，并且启动了各种引导服务、核心服务以及其他服务等，包括AMS、PMS、WMS、电量管理服务等一系列服务，以及创建主线程Looper，并循环等待消息；</p>
+<p>其中在启动引导服务方法中，启动了ActivityManagerService，并且在启动其他服务的方法中，调用AMS的systemReady()方法，Launcher进程就是从这儿开始启动的；</p>
+<pre><code>public final class SystemServer {
+    private void run() {
+    ...
+    startBootstrapServices();
+    startOtherServices();
+    ...
+  }
+
+  private void startBootstrapServices() {
+    ...
+    mActivityManagerService = mSystemServiceManager.startService(ActivityManagerService.Lifecycle.class).getService();
+    mActivityManagerService.setSystemServiceManager(mSystemServiceManager);
+    mActivityManagerService.setInstaller(installer);
+    ...
+  }
+
+  private void startOtherServices() {
+    ...
+    mActivityManagerService.systemReady(() -&gt; { 
+
+    }, BOOT_TIMINGS_TRACE_LOG);
+  }
+}</code></pre><p>在SystemServer启动的时候，执行startOtherServices()方法中，里面调用了AMS的systemReady()方法，通过该方法来启动Launcher；</p>
+<pre><code>// Tag for timing measurement of main thread.
+private static final String SYSTEM_SERVER_TIMING_TAG = &quot;SystemServerTiming&quot;;
+private static final TimingsTraceLog BOOT_TIMINGS_TRACE_LOG
+            = new TimingsTraceLog(SYSTEM_SERVER_TIMING_TAG, Trace.TRACE_TAG_SYSTEM_SERVER);
+
+private void startOtherServices() {
+  ...
+  mActivityManagerService.systemReady(() -&gt; {
+    Slog.i(TAG, &quot;Making services ready&quot;);
+    traceBeginAndSlog(&quot;StartActivityManagerReadyPhase&quot;);
+    mSystemServiceManager.startBootPhase(SystemService.PHASE_ACTIVITY_MANAGER_READY);
+    ...
+  }, BOOT_TIMINGS_TRACE_LOG);
+}</code></pre><h3 id="2-2、AMS执行"><a href="#2-2、AMS执行" class="headerlink" title="2.2、AMS执行"></a>2.2、AMS执行</h3><p>在AMS中执行systemReady()方法，在其中执行startHomeActivityLocked()方法，传入当前用户ID；</p>
+<pre><code>public void systemReady(final Runnable goingCallback, TimingsTraceLog traceLog) {
+  ...
+  synchronized (this) {
+    ...
+    startHomeActivityLocked(currentUserId, &quot;systemReady&quot;);
+    ...
+  }
+  ...
+}</code></pre><h4 id="2-2-1、获取Launcher的Intent"><a href="#2-2-1、获取Launcher的Intent" class="headerlink" title="2.2.1、获取Launcher的Intent"></a>2.2.1、获取Launcher的Intent</h4><p>在startHomeActivityLocked()方法中，首先通过getHomeIntent()方法，获取到要启动的HomeActivity的intent对象，其中mTopAction默认为INTENT.ACTION_MAIN，并添加CATEGORY_HOME的category标志；</p>
+<p>得到Intent对象，通过PackageManager去获取对应符合的Activity，获取对应的ActivityInfo，并获取对应的进程记录，此时对应的进程还没启动，后面继续执行，为intent添加FLAG_ACTIVITY_NEW_TASK启动参数，开启新栈，随后调用ActivityStartController类的startHomeActivity()方法去执行启动；</p>
+<pre><code>boolean startHomeActivityLocked(int userId, String reason) {
+  ...
+  Intent intent = getHomeIntent(); 
+  ActivityInfo aInfo = resolveActivityInfo(intent, STOCK_PM_FLAGS, userId);
+  if (aInfo != null) {
+    intent.setComponent(new ComponentName(aInfo.applicationInfo.packageName, aInfo.name));
+    // Don&apos;t do this if the home app is currently being instrumented.
+    aInfo = new ActivityInfo(aInfo);
+    aInfo.applicationInfo = getAppInfoForUser(aInfo.applicationInfo, userId);
+    ProcessRecord app = getProcessRecordLocked(aInfo.processName, aInfo.applicationInfo.uid, true);
+    if (app == null || app.instr == null) {
+      intent.setFlags(intent.getFlags() | FLAG_ACTIVITY_NEW_TASK);
+      final int resolvedUserId = UserHandle.getUserId(aInfo.applicationInfo.uid);
+      // For ANR debugging to verify if the user activity is the one that actually launched.
+      final String myReason = reason + &quot;:&quot; + userId + &quot;:&quot; + resolvedUserId;
+      mActivityStartController.startHomeActivity(intent, aInfo, myReason);
+    }
+  }
+  ...
+  return true;
+}
+
+Intent getHomeIntent() {
+  Intent intent = new Intent(mTopAction, mTopData != null ? Uri.parse(mTopData) : null);
+  intent.setComponent(mTopComponent);
+  intent.addFlags(Intent.FLAG_DEBUG_TRIAGED_MISSING);
+  if (mFactoryTest != FactoryTest.FACTORY_TEST_LOW_LEVEL) {
+    intent.addCategory(Intent.CATEGORY_HOME);
+  }
+  return intent;
+}</code></pre><h4 id="2-2-2、启动Launcher"><a href="#2-2-2、启动Launcher" class="headerlink" title="2.2.2、启动Launcher"></a>2.2.2、启动Launcher</h4><p>在startHomeActivity()方法中，调用obtainStarter()方法获取到一个ActivityStarter对象，setCallingUid()方法设置当前调用的Uid=0，然后执行其execute()方法；</p>
+<pre><code>void startHomeActivity(Intent intent, ActivityInfo aInfo, String reason) {
+  mSupervisor.moveHomeStackTaskToTop(reason);
+  mLastHomeActivityStartResult = obtainStarter(intent, &quot;startHomeActivity: &quot; + reason)
+    .setOutActivity(tmpOutRecord)
+    .setCallingUid(0)
+    .setActivityInfo(aInfo)
+    .execute();
+  mLastHomeActivityStartRecord = tmpOutRecord[0];
+  if (mSupervisor.inResumeTopActivity) {
+    // If we are in resume section already, home activity will be initialized, but not
+    // resumed (to avoid recursive resume) and will stay that way until something pokes it
+    // again. We need to schedule another resume.
+    mSupervisor.scheduleResumeTopActivities();
+  }
+}</code></pre><p>在ActivityStarter的execute()方法中，mayWait默认为false，执行startActivity()方法；</p>
+<pre><code>int execute() {
+  try {
+    // TODO(b/64750076): Look into passing request directly to these methods to allow
+    // for transactional diffs and preprocessing.
+    if (mRequest.mayWait) {
+      return startActivityMayWait(mRequest.caller, mRequest.callingUid,  ...);
+    } else {
+      return startActivity(mRequest.caller, mRequest.intent, mRequest.ephemeralIntent, ...);
+    }
+  } finally {
+    onExecutionComplete();
+  }
+}</code></pre><p>这里进入了Activity的启动流程，Launcher本身就是一个系统APP，用于显示桌面等，LauncherApp启动之后会执行其生命周期方法初始化桌面布局；</p>
+<h3 id="2-3、初始化桌面图标"><a href="#2-3、初始化桌面图标" class="headerlink" title="2.3、初始化桌面图标"></a>2.3、初始化桌面图标</h3><h4 id="2-3-1、执行onCreate-方法"><a href="#2-3-1、执行onCreate-方法" class="headerlink" title="2.3.1、执行onCreate()方法"></a>2.3.1、执行onCreate()方法</h4><pre><code>@Override
+protected void onCreate(Bundle savedInstanceState) {
+  ...
+  LauncherAppState app = LauncherAppState.getInstance(this);
+  ...
+}</code></pre><p>获取LauncherAppState，通过LauncherAppState的getInstance()方法获取，该方法里面会判断当前线程是否为主线程，在主线程时还会直接new出对象，不在主线程时，通过MainThreadExecutor的submit()方法向主线程提交一个任务去获取该对象；</p>
+<pre><code>// We do not need any synchronization for this variable as its only written on UI thread.
+private static LauncherAppState INSTANCE;
+
+public static LauncherAppState getInstance(final Context context) {
+  if (INSTANCE == null) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      INSTANCE = new LauncherAppState(context.getApplicationContext());
+    } else {
+      try {
+        return new MainThreadExecutor().submit(new Callable&lt;LauncherAppState&gt;() {
+          @Override
+          public LauncherAppState call() throws Exception {
+            return LauncherAppState.getInstance(context);
+          }
+        }).get();
+      } catch (InterruptedException|ExecutionException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+  return INSTANCE;
+}</code></pre><h4 id="2-3-2、读取安装APP信息"><a href="#2-3-2、读取安装APP信息" class="headerlink" title="2.3.2、读取安装APP信息"></a>2.3.2、读取安装APP信息</h4><p>在LauncherAppState的构造方法中，会新建InvariantDeviceProfile对象，这个类主要是存储App的基本配置信息，例如App图标的尺寸大小，文字大小，每个工作空间或文件夹能显示多少App等；</p>
+<p>在LauncherAppState的构造方法中，会获取WindowManager，并获取屏幕的尺寸，解析桌面布局文件，获取默认尺寸信息等；</p>
+<pre><code>@TargetApi(23)
+public InvariantDeviceProfile(Context context) {
+  WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+  Display display = wm.getDefaultDisplay();
+  DisplayMetrics dm = new DisplayMetrics();
+  display.getMetrics(dm);
+  ...
+  ArrayList&lt;InvariantDeviceProfile&gt; closestProfiles = findClosestDeviceProfiles(minWidthDps, minHeightDps, getPredefinedDeviceProfiles(context));
+  ...
+}
+
+ArrayList&lt;InvariantDeviceProfile&gt; getPredefinedDeviceProfiles(Context context) {
+  ArrayList&lt;InvariantDeviceProfile&gt; profiles = new ArrayList&lt;&gt;();
+  try (XmlResourceParser parser = context.getResources().getXml(R.xml.device_profiles)) {
+    final int depth = parser.getDepth();
+    int type;
+    while (((type = parser.next()) != XmlPullParser.END_TAG || parser.getDepth() &gt; depth) &amp;&amp; type != XmlPullParser.END_DOCUMENT) {
+      if ((type == XmlPullParser.START_TAG) &amp;&amp; &quot;profile&quot;.equals(parser.getName())) {
+        TypedArray a = context.obtainStyledAttributes(Xml.asAttributeSet(parser), R.styleable.InvariantDeviceProfile);
+        int numRows = a.getInt(R.styleable.InvariantDeviceProfile_numRows, 0);
+        int numColumns = a.getInt(R.styleable.InvariantDeviceProfile_numColumns, 0);
+        float iconSize = a.getFloat(R.styleable.InvariantDeviceProfile_iconSize, 0);
+        profiles.add(new InvariantDeviceProfile(
+          a.getString(R.styleable.InvariantDeviceProfile_name),
+          a.getFloat(R.styleable.InvariantDeviceProfile_minWidthDps, 0),
+          a.getFloat(R.styleable.InvariantDeviceProfile_minHeightDps, 0),
+          numRows,
+          numColumns,
+          a.getInt(R.styleable.InvariantDeviceProfile_numFolderRows, numRows),
+          a.getInt(R.styleable.InvariantDeviceProfile_numFolderColumns, numColumns),
+          iconSize,
+          a.getFloat(R.styleable.InvariantDeviceProfile_landscapeIconSize, iconSize),
+          a.getFloat(R.styleable.InvariantDeviceProfile_iconTextSize, 0),
+          a.getInt(R.styleable.InvariantDeviceProfile_numHotseatIcons, numColumns),
+          a.getResourceId(R.styleable.InvariantDeviceProfile_defaultLayoutId, 0),
+          a.getResourceId(R.styleable.InvariantDeviceProfile_demoModeLayoutId, 0)));
+        a.recycle();
+      }
+    }
+  } catch (IOException|XmlPullParserException e) {
+    throw new RuntimeException(e);
+  }
+  return profiles;
+}</code></pre><h4 id="2-3-3、注册Intent广播"><a href="#2-3-3、注册Intent广播" class="headerlink" title="2.3.3、注册Intent广播"></a>2.3.3、注册Intent广播</h4><p>新建LauncherModel对象，该对象是一个BroadcastReceiver，并添加App变化的回调，以及设置Filter并注册广播，用于监听桌面App的变化；</p>
+<pre><code>private LauncherAppState(Context context) {
+  ...
+  mModel = new LauncherModel(this, mIconCache, AppFilter.newInstance(mContext));
+  LauncherAppsCompat.getInstance(mContext).addOnAppsChangedCallback(mModel);
+  // Register intent receivers
+  IntentFilter filter = new IntentFilter();
+  filter.addAction(Intent.ACTION_LOCALE_CHANGED);
+  // For handling managed profiles
+  filter.addAction(Intent.ACTION_MANAGED_PROFILE_ADDED);
+  filter.addAction(Intent.ACTION_MANAGED_PROFILE_REMOVED);
+  ...
+  mContext.registerReceiver(mModel, filter);
+  ...
+}
+
+public class LauncherModel extends BroadcastReceiver ... {}</code></pre><h4 id="2-3-4、解析Launcher布局"><a href="#2-3-4、解析Launcher布局" class="headerlink" title="2.3.4、解析Launcher布局"></a>2.3.4、解析Launcher布局</h4><p>继续回到Launcher的onCreate()方法，将Launcher添加到LauncherModel中，是以弱引用的方式添加，初始化一些其工作，解析Launcher的布局，</p>
+<pre><code>@Override
+protected void onCreate(Bundle savedInstanceState) {
+  ...
+  mModel = app.setLauncher(this);
+  ...
+  mLauncherView = LayoutInflater.from(this).inflate(R.layout.launcher, null);
+  ...
+}
+
+# LauncherModel
+public void initialize(Callbacks callbacks) {
+  synchronized (mLock) {
+    Preconditions.assertUIThread();
+    mCallbacks = new WeakReference&lt;&gt;(callbacks);
+  }
+}</code></pre><h4 id="2-3-5、加载桌面"><a href="#2-3-5、加载桌面" class="headerlink" title="2.3.5、加载桌面"></a>2.3.5、加载桌面</h4><p>onCreate()方法中，通过LauncherModel的startLoader()来加载桌面App；</p>
+<pre><code>@Override
+protected void onCreate(Bundle savedInstanceState) {
+  ...
+  if (!mModel.startLoader(currentScreen)) {
+    if (!internalStateHandled) {
+      // If we are not binding synchronously, show a fade in animation when
+      // the first page bind completes.
+      mDragLayer.getAlphaProperty(ALPHA_INDEX_LAUNCHER_LOAD).setValue(0);
+    }
+  } else {
+    // Pages bound synchronously.
+    mWorkspace.setCurrentPage(currentScreen);
+    setWorkspaceLoading(true);
+  }
+  ...
+}</code></pre><p>在LauncherModel的startLoader()方法中，新建了一个LoaderResults对象，并通过startLoaderForResults()方法创建出一个LoaderTask的Runnable任务，将其在工作线程中执行起来；</p>
+<pre><code>public boolean startLoader(int synchronousBindPage) {
+  ...
+  synchronized (mLock) {
+    // Don&apos;t bother to start the thread if we know it&apos;s not going to do anything
+    if (mCallbacks != null &amp;&amp; mCallbacks.get() != null) {
+      ...
+      LoaderResults loaderResults = new LoaderResults(mApp, sBgDataModel, mBgAllAppsList, synchronousBindPage, mCallbacks);
+      if (mModelLoaded &amp;&amp; !mIsLoaderTaskRunning) {
+        ...
+        return true;
+      } else {
+        startLoaderForResults(loaderResults);
+      }
+    }
+  }
+  return false;
+}
+
+public void startLoaderForResults(LoaderResults results) {
+  synchronized (mLock) {
+    stopLoader();
+    mLoaderTask = new LoaderTask(mApp, mBgAllAppsList, sBgDataModel, results);
+    runOnWorkerThread(mLoaderTask);
+  }
+}
+
+private static void runOnWorkerThread(Runnable r) {
+  if (sWorkerThread.getThreadId() == Process.myTid()) {
+    r.run();
+  } else {
+    // If we are not on the worker thread, then post to the worker handler
+    sWorker.post(r);
+  }
+}</code></pre><p>在LoaderTask的run()方法中，去加载手机已安装的App的信息，查询数据库获取已安装的App的相关信息，加载Launcher布局，并将数据转化为View，绑定到界面上，由此我们就可以看到桌面显示的宫格列表的桌面图标了；</p>
+<pre><code>public void run() {
+  ...
+  try (LauncherModel.LoaderTransaction transaction = mApp.getModel().beginLoader(this)) {
+    // 查询数据库整理App信息，转化为View绑定到界面
+    loadWorkspace();
+    mResults.bindWorkspace();
+    loadAllApps();
+    mResults.bindAllApps();
+    loadDeepShortcuts();
+    mResults.bindDeepShortcuts();
+    mBgDataModel.widgetsModel.update(mApp, null);
+    mResults.bindWidgets();
+    transaction.commit();
+  } catch (CancellationException e) {
+    // Loader stopped, ignore
+    TraceHelper.partitionSection(TAG, &quot;Cancelled&quot;);
+  }
+  TraceHelper.endSection(TAG);
+}</code></pre>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android%E7%B3%BB%E7%BB%9F%E5%90%AF%E5%8A%A8/" rel="tag"># Android系统启动</a>
+          
+            <a href="/tags/App%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="tag"># App启动流程</a>
+          
+            <a href="/tags/Android%E6%BA%90%E7%A0%81/" rel="tag"># Android源码</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" rel="next" title="SystemServer进程启动">
+                <i class="fa fa-chevron-left"></i> SystemServer进程启动
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、Launcher"><span class="nav-text">1、Launcher</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、Launcher进程启动流程"><span class="nav-text">2、Launcher进程启动流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、SystemServer调用"><span class="nav-text">2.1、SystemServer调用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、AMS执行"><span class="nav-text">2.2、AMS执行</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1、获取Launcher的Intent"><span class="nav-text">2.2.1、获取Launcher的Intent</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2、启动Launcher"><span class="nav-text">2.2.2、启动Launcher</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3、初始化桌面图标"><span class="nav-text">2.3、初始化桌面图标</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1、执行onCreate-方法"><span class="nav-text">2.3.1、执行onCreate()方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2、读取安装APP信息"><span class="nav-text">2.3.2、读取安装APP信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3、注册Intent广播"><span class="nav-text">2.3.3、注册Intent广播</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-4、解析Launcher布局"><span class="nav-text">2.3.4、解析Launcher布局</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-5、加载桌面"><span class="nav-text">2.3.5、加载桌面</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

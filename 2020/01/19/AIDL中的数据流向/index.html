@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android IPC,Binder,进程间通讯,AIDL," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1、AIDL文件1.1、文件类型文件后缀名为.aidl； 1.2、数据类型1.2.1、默认支持类型默认支持的类型不需要导包；  Java八种基本类型：byte、short、int、long、float、double、boolean、char； String类型； CharSequence类型； List类型：List中的所有元素必须是AIDL支持的类型之一，或者是一个其他AIDL生成的接口，或者是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AIDL中的数据流向">
+<meta property="og:url" content="http://yoursite.com/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="1、AIDL文件1.1、文件类型文件后缀名为.aidl； 1.2、数据类型1.2.1、默认支持类型默认支持的类型不需要导包；  Java八种基本类型：byte、short、int、long、float、double、boolean、char； String类型； CharSequence类型； List类型：List中的所有元素必须是AIDL支持的类型之一，或者是一个其他AIDL生成的接口，或者是">
+<meta property="article:published_time" content="2020-01-19T07:37:30.000Z">
+<meta property="article:modified_time" content="2020-01-19T08:32:03.910Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="Android IPC">
+<meta property="article:tag" content="Binder">
+<meta property="article:tag" content="进程间通讯">
+<meta property="article:tag" content="AIDL">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/01/19/AIDL中的数据流向/"/>
+
+
+
+
+
+  <title>AIDL中的数据流向 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">AIDL中的数据流向</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-01-19T15:37:30+08:00">
+                2020-01-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/01/19/AIDL%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81%E5%90%91/" class="leancloud_visitors" data-flag-title="AIDL中的数据流向">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1、AIDL文件"><a href="#1、AIDL文件" class="headerlink" title="1、AIDL文件"></a>1、AIDL文件</h2><h3 id="1-1、文件类型"><a href="#1-1、文件类型" class="headerlink" title="1.1、文件类型"></a>1.1、文件类型</h3><p>文件后缀名为.aidl；</p>
+<h3 id="1-2、数据类型"><a href="#1-2、数据类型" class="headerlink" title="1.2、数据类型"></a>1.2、数据类型</h3><h4 id="1-2-1、默认支持类型"><a href="#1-2-1、默认支持类型" class="headerlink" title="1.2.1、默认支持类型"></a>1.2.1、默认支持类型</h4><p>默认支持的类型不需要导包；</p>
+<ul>
+<li>Java八种基本类型：byte、short、int、long、float、double、boolean、char；</li>
+<li>String类型；</li>
+<li>CharSequence类型；</li>
+<li>List类型：List中的所有元素必须是AIDL支持的类型之一，或者是一个其他AIDL生成的接口，或者是定义的parcelable，List可以使用泛型；</li>
+<li>Map类型：Map中的所有元素必须是AIDL支持的类型之一，或者是一个其他AIDL生成的接口，或者是定义的parcelable，Map是不支持泛型的，使用时需要显示导包；</li>
+</ul>
+<h4 id="1-2-2、parcelable对象"><a href="#1-2-2、parcelable对象" class="headerlink" title="1.2.2、parcelable对象"></a>1.2.2、parcelable对象</h4><p>如自定义实体类实现Parcelable接口，使用时需要显示导包，即使目标文件与当前正在编写的.aidl文件在同一个包下；</p>
+<h3 id="1-3、定向tag"><a href="#1-3、定向tag" class="headerlink" title="1.3、定向tag"></a>1.3、定向tag</h3><ul>
+<li>in：单向数据流，客户端到服务端；</li>
+<li>out：单向数据流，服务端到客户端；</li>
+<li>inout：双向数据流，客户端与服务端双向流通；</li>
+</ul>
+<p>Java中的基本类型和String、CharSequence的定向tag默认且只能是in；</p>
+<h4 id="1-3-1、in"><a href="#1-3-1、in" class="headerlink" title="1.3.1、in"></a>1.3.1、in</h4><p>客户端数据流向服务端，即客户端的值(实体类)即时同步到服务端，服务端可以拿到客户端传递的实体类，此时在服务端对接收到的客户端传来的数据做修改，服务端发生变化，客户端不发生变化，因为单向流动，除非调用接口方法，返回服务端修改的数据，客户端才能拿到服务端修改后的数据；</p>
+<h4 id="1-3-2、out"><a href="#1-3-2、out" class="headerlink" title="1.3.2、out"></a>1.3.2、out</h4><p>服务端数据流向客户端，即客户端的数据信息不向服务端同步（传递对象，对象不为空，但是没有数据），但是服务端拿到传递的对象后修改数据，能及时同步到客户端；</p>
+<h4 id="1-3-3、inout"><a href="#1-3-3、inout" class="headerlink" title="1.3.3、inout"></a>1.3.3、inout</h4><p>双向流向，即服务端能拿到客户端传递的数据，服务端修改后客户端能及时同步到数据；</p>
+<h3 id="1-4、两种aidl文件"><a href="#1-4、两种aidl文件" class="headerlink" title="1.4、两种aidl文件"></a>1.4、两种aidl文件</h3><pre><code>- 一类是用来定义parcelable对象，以供其他AIDL文件使用AIDL中非默认支持的数据类型的；
+- 一类是用来定义方法接口，以供系统使用来完成跨进程通信的；</code></pre><h2 id="2、AIDL的使用"><a href="#2、AIDL的使用" class="headerlink" title="2、AIDL的使用"></a>2、AIDL的使用</h2><h3 id="2-1、定义-aidl文件"><a href="#2-1、定义-aidl文件" class="headerlink" title="2.1、定义.aidl文件"></a>2.1、定义.aidl文件</h3><h4 id="2-1-1、实体类定义"><a href="#2-1-1、实体类定义" class="headerlink" title="2.1.1、实体类定义"></a>2.1.1、实体类定义</h4><p>定义实体类，作为进程间交互的数据，实现Parcelable接口；</p>
+<pre><code>public class ImageData implements Parcelable {
+  private String mImageName;
+  private int mImageSize;
+  private byte[] mImageArray;
+
+  public ImageData() {}
+
+  protected ImageData(Parcel in) {
+    readFromParcel(in);
+  }
+
+  public static final Creator&lt;ImageData&gt; CREATOR = new Creator&lt;ImageData&gt;() {
+    @Override
+    public ImageData createFromParcel(Parcel in) {
+      return new ImageData(in);
+    }
+
+    @Override
+    public ImageData[] newArray(int size) {
+      return new ImageData[size];
+    }
+  };
+
+  // 省略getter和setter方法
+  ...
+
+  @Override
+  public int describeContents() {
+    return 0;
+  }
+
+  @Override
+  public void writeToParcel(Parcel dest, int flags) {
+    dest.writeString(mImageName);
+    dest.writeInt(mImageSize);
+    dest.writeByteArray(mImageArray);
+  }
+
+  public void readFromParcel(Parcel dest) {
+    this.mImageName = dest.readString();
+    this.mImageSize = dest.readInt();
+    this.mImageArray = dest.createByteArray();
+  }
+
+  // 省略toString方法
+  ...
+}</code></pre><h4 id="2-1-2、-aidl接口定义"><a href="#2-1-2、-aidl接口定义" class="headerlink" title="2.1.2、.aidl接口定义"></a>2.1.2、.aidl接口定义</h4><p>定义.aidl接口，这里为了验证客户端与服务端的数据变化，定义了三个接口方法；</p>
+<pre><code>// 显示导包
+interface ImageShareInterface {
+  List&lt;ImageData&gt; getImages();
+  // flag为in
+  ImageData showImageIn(in ImageData data);
+
+  // flag为out
+  ImageData showImageOut(out ImageData data);
+
+  // flag为inout
+  ImageData showImageInOut(inout ImageData data);
+}</code></pre><p>定义实体类的aidl文件；</p>
+<pre><code>// 该文件需要与ImageData实体类文件的包名相同
+import com.xxx.ImageData;
+
+parcelable ImageData;</code></pre><p>此时完成之后，build工程，会生将.aidl文件接口生成对应的java文件，生成目录如下：</p>
+<pre><code>build/generated/aidl_source_output_dir/debug/compileDebugAidl/out/&lt;package&gt;/</code></pre><h3 id="2-2、server端实现"><a href="#2-2、server端实现" class="headerlink" title="2.2、server端实现"></a>2.2、server端实现</h3><ul>
+<li><p>自定义Service继承Service类，实现onBind()方法；</p>
+<pre><code>@Override
+public IBinder onBind(Intent intent) {
+  return imageShareMgr;
+}</code></pre></li>
+<li><p>声明2.1.2中生成的java接口文件中的Stub类，并实现定义的方法，最后将该对象在onBind()方法中返回，用于将该IBinder对象传递给客户端使用；</p>
+<pre><code>private final ImageShareInterface.Stub imageShareMgr = new ImageShareInterface.Stub() {
+  @Override
+  public void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat, double aDouble, String aString) throws RemoteException {}
+
+  @Override
+  public List&lt;ImageData&gt; getImages() throws RemoteException {
+    synchronized (this) {
+      if (imageDatas != null) {
+        return imageDatas;
+      }
+    }
+    return new ArrayList&lt;&gt;();
+  }
+
+  @Override
+  public ImageData showImageIn(ImageData data) throws RemoteException {
+    synchronized (this) {
+      if (imageDatas == null) {
+        imageDatas = new ArrayList&lt;&gt;();
+      }
+      if (data == null) {
+        data = new ImageData();
+      }
+      data.setmImageArray(new byte[2]);
+      if (!imageDatas.contains(data)) {
+        imageDatas.add(data);
+      }
+      Log.e(&quot;tag&quot;, &quot;service in : &quot; + imageDatas.toString());
+      return data;
+    }
+  }
+
+  @Override
+  public ImageData showImageOut(ImageData data) throws RemoteException {
+    synchronized (this) {
+      if (imageDatas == null) {
+        imageDatas = new ArrayList&lt;&gt;();
+      }
+      if (data == null) {
+        data = new ImageData();
+      }
+      data.setmImageArray(new byte[2]);
+      if (!imageDatas.contains(data)) {
+        imageDatas.add(data);
+      }
+      Log.e(&quot;tag&quot;, &quot;service out : &quot; + imageDatas.toString());
+      return data;
+    }
+  }
+
+  @Override
+  public ImageData showImageInOut(ImageData data) throws RemoteException {
+    synchronized (this) {
+      if (imageDatas == null) {
+        imageDatas = new ArrayList&lt;&gt;();
+      }
+      if (data == null) {
+        data = new ImageData();
+      }
+      data.setmImageArray(new byte[2]);
+      if (!imageDatas.contains(data)) {
+        imageDatas.add(data);
+      }
+      Log.e(&quot;tag&quot;, &quot;service inout : &quot; + imageDatas.toString());
+      return data;
+    }
+  }
+};</code></pre></li>
+</ul>
+<p>最后Service类需要在Manifest文件中声明；</p>
+<h3 id="2-3、client端实现"><a href="#2-3、client端实现" class="headerlink" title="2.3、client端实现"></a>2.3、client端实现</h3><h4 id="2-3-1、绑定服务"><a href="#2-3-1、绑定服务" class="headerlink" title="2.3.1、绑定服务"></a>2.3.1、绑定服务</h4><pre><code>Intent intent =new Intent();
+intent.setAction(&quot;xxx&quot;);
+intent.setPackage(&quot;xxx&quot;);
+bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+private ServiceConnection connection = new ServiceConnection() {
+  @Override
+  public void onServiceConnected(ComponentName name, IBinder service) {
+    imageShareInterface = ImageShareInterface.Stub.asInterface(service);
+    if (imageShareInterface != null) {
+      try {
+        List&lt;ImageData&gt; imageData = imageShareInterface.getImages();
+        Log.e(&quot;tag&quot;, &quot;conn: &quot; + imageData.toString());
+      } catch (RemoteException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  @Override
+  public void onServiceDisconnected(ComponentName name) {}
+};</code></pre><h4 id="2-3-2、调用服务"><a href="#2-3-2、调用服务" class="headerlink" title="2.3.2、调用服务"></a>2.3.2、调用服务</h4><p>客户端使用三个TextView来打印客户端本地对象数据和服务端返回的对象来验证数据流向同步，TextView上绑定点击事件，点击TextView时，分别调用服务端的三个对应方法in、out、inout；</p>
+<pre><code>// flag为in时
+ImageData imageData = new ImageData();
+imageData.setmImageName(&quot;client in&quot;);
+imageData.setmImageArray(new byte[3]);
+try {
+  ImageData re = imageShareInterface.showImageIn(imageData);
+  // 可以为空
+  // ImageData re = imageShareInterface.showImageIn(null);
+  Log.e(&quot;tag&quot;, &quot;client in &quot; + imageData.toString());
+  Log.e(&quot;tag&quot;, &quot;client in2 &quot; + re.toString());
+  textIn.setText(re.getmImageName() + &quot;-----&quot; + re.getmImageSize() + &quot;\n&quot; + imageData.getmImageName() + &quot;---&quot; + imageData.getmImageSize());
+} catch (RemoteException e) {
+  e.printStackTrace();
+}
+
+// flag为out时
+ImageData imageData2 = new ImageData();
+imageData2.setmImageName(&quot;client out&quot;);
+imageData2.setmImageArray(new byte[4]);
+try {
+  ImageData re = imageShareInterface.showImageOut(imageData2);
+  // 不可以为空，服务端数据无法流回
+  // ImageData re = imageShareInterface.showImageOut(null);
+  Log.e(&quot;tag&quot;, &quot;client out &quot; + imageData2.toString());
+  Log.e(&quot;tag&quot;, &quot;client out2 &quot; + re.toString());
+  textOut.setText(re.getmImageName() + &quot;-----&quot; + re.getmImageSize() + &quot;\n&quot; + imageData2.getmImageName() + &quot;---&quot; + imageData2.getmImageSize());
+} catch (RemoteException e) {
+  e.printStackTrace();
+}
+
+// flag为inout时
+ImageData imageData3 = new ImageData();
+imageData3.setmImageName(&quot;client inout&quot;);
+imageData3.setmImageArray(new byte[1]);
+try {
+  ImageData re = imageShareInterface.showImageInOut(imageData3);
+  Log.e(&quot;tag&quot;, &quot;client inout &quot; + imageData3.toString());
+  Log.e(&quot;tag&quot;, &quot;client inout2 &quot; + re.toString());
+  textInOut.setText(re.getmImageName() + &quot;-----&quot; + re.getmImageSize() + &quot;\n&quot; + imageData3.getmImageName() + &quot;---&quot; + imageData3.getmImageSize());
+} catch (RemoteException e) {
+  e.printStackTrace();
+}</code></pre><h3 id="2-4、结果日志"><a href="#2-4、结果日志" class="headerlink" title="2.4、结果日志"></a>2.4、结果日志</h3><p>按顺序点击三个TextView(in、out、inout顺序)，分别打印服务端与客户端日志</p>
+<h4 id="2-4-1、服务端日志"><a href="#2-4-1、服务端日志" class="headerlink" title="2.4.1、服务端日志"></a>2.4.1、服务端日志</h4><pre><code>// flag为in的方法
+E/tag: service in : [ImageData{mImageName=&apos;service default&apos;, mImageSize=1, mImageArray=[0]}, ImageData{mImageName=&apos;client in&apos;, mImageSize=2, mImageArray=[0, 0]}]
+
+// flag为out的方法
+E/tag: service out : [ImageData{mImageName=&apos;service default&apos;, mImageSize=1, mImageArray=[0]}, ImageData{mImageName=&apos;client in&apos;, mImageSize=2, mImageArray=[0, 0]}, ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}]
+
+// flag为inout的方法
+E/tag: service inout : [ImageData{mImageName=&apos;service default&apos;, mImageSize=1, mImageArray=[0]}, ImageData{mImageName=&apos;client in&apos;, mImageSize=2, mImageArray=[0, 0]}, ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}, ImageData{mImageName=&apos;client inout&apos;, mImageSize=2, mImageArray=[0, 0]}]</code></pre><p>服务端默认向集合中添加一个实体类作为参考，并且接受客户端传递的参数，只修改其属性size大小，不修改属性name的值，对应三个方法：</p>
+<ul>
+<li>in：接收到客户端传来的对象，name属性的值不变，size属性的值为服务端修改后的；</li>
+<li>out：接受到客户端传来的对象，name属性的值为null，size属性的值为服务端修改后的；</li>
+<li>inout：接受到客户端传来的对象，name属性的值不变，size属性的值为服务端修改后的；</li>
+</ul>
+<h4 id="2-4-2、客户端日志"><a href="#2-4-2、客户端日志" class="headerlink" title="2.4.2、客户端日志"></a>2.4.2、客户端日志</h4><pre><code>// 成功连接到服务时打印的日志
+E/tag: conn: [ImageData{mImageName=&apos;service default&apos;, mImageSize=1, mImageArray=[0]}]
+
+// flag为in的方法
+E/tag: client in ImageData{mImageName=&apos;client in&apos;, mImageSize=3, mImageArray=[0, 0, 0]}
+    client in2 ImageData{mImageName=&apos;client in&apos;, mImageSize=2, mImageArray=[0, 0]}
+
+// flag为out的方法
+E/tag: client out ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}
+    client out2 ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}
+
+// flag为inout的方法
+E/tag: client inout ImageData{mImageName=&apos;client inout&apos;, mImageSize=2, mImageArray=[0, 0]}
+    client inout2 ImageData{mImageName=&apos;client inout&apos;, mImageSize=2, mImageArray=[0, 0]}</code></pre><p>客户端向服务端传递对象，在客户端设置name属性的值以及size属性的值；</p>
+<ul>
+<li>in：客户端声明的对象为客户端自己设置的值，调用接口服务方法返回的对象为服务端修改后的值；</li>
+<li>out：客户端声明的对象以及服务端返回的对象，name属性的值均变成了null，size属性均变成了服务端设置的；</li>
+<li>innout：客户端声明的对象和服务端返回的对象，name属性的值均为客户端设置的值，size属性值为服务端修改的值；</li>
+</ul>
+<p>以上变化有些不解，为何有的调用服务接口方法之后，本地声明的对象值跟着修改，有些值是原来声明的，有些值会变成null？</p>
+<h2 id="3、数据流向源码分析"><a href="#3、数据流向源码分析" class="headerlink" title="3、数据流向源码分析"></a>3、数据流向源码分析</h2><p>通过查看源码以及编译后生成的java接口文件来解释；</p>
+<h3 id="3-1、server端接口对象"><a href="#3-1、server端接口对象" class="headerlink" title="3.1、server端接口对象"></a>3.1、server端接口对象</h3><p>服务端声明一个ImageShareInterface.Stub对象，并作为onBind()方法的返回值传递给与之绑定的客户端，Stub类由aidl文件编译之后产生(省略部分代码)：</p>
+<pre><code>public static abstract class Stub extends android.os.Binder implements cn.com.ultrapower.aidl_service.ImageShareInterface {
+  private static final java.lang.String DESCRIPTOR = &quot;xxx.ImageShareInterface&quot;;
+    public Stub() { this.attachInterface(this, DESCRIPTOR); }
+
+  @Override public android.os.IBinder asBinder() { return this; }
+
+  @Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException {
+    ...
+  }
+
+  private static class Proxy implements cn.com.ultrapower.aidl_service.ImageShareInterface {
+    ...
+  }
+}</code></pre><p>Service中声明Stub对象，调用其无参构造方法，其无参构造方法调用其父类Binder类的attachInterface()方法，将本身owner传递过去，以及传递了一个descriptor作为进程的唯一的标识：</p>
+<pre><code>public void attachInterface(@Nullable IInterface owner, @Nullable String descriptor) {
+    mOwner = owner;
+  mDescriptor = descriptor;
+}</code></pre><h3 id="3-2、client端代理对象"><a href="#3-2、client端代理对象" class="headerlink" title="3.2、client端代理对象"></a>3.2、client端代理对象</h3><p>客户端连接服务端之后，在connection中利用服务端返回的IBinder对象，拿到这个对象在生成的java接口文件中的代理对象：</p>
+<pre><code>imageShareInterface = ImageShareInterface.Stub.asInterface(service);</code></pre><p>查看ImageShareInterface.Stub的asInterface()方法：</p>
+<pre><code>public static cn.com.ultrapower.aidl_service.ImageShareInterface asInterface(android.os.IBinder obj) {
+  if ((obj==null)) { return null; }
+  android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
+  if (((iin!=null)&amp;&amp;(iin instanceof cn.com.ultrapower.aidl_service.ImageShareInterface))) {
+    return ((cn.com.ultrapower.aidl_service.ImageShareInterface)iin);
+  }
+  return new cn.com.ultrapower.aidl_service.ImageShareInterface.Stub.Proxy(obj);
+}</code></pre><p>这里通过DESCRIPTOR来判断是否在同一个进程，客户端与服务端不在同一个进程内，所以最终返回的是Stub的代理对象Proxy对象；</p>
+<pre><code>private static class Proxy implements cn.com.ultrapower.aidl_service.ImageShareInterface {
+    // 这里具体实现了客户端调用接口文件中的方法
+}</code></pre><p>所以调用的流程是：客户端调用接口文件的Stub代理类的方法，由代理类去中调用Stub中的接口方法，即实现在Service中的接口方法，之间交互的媒介就是new代理时传入的IBinder对象，也就是服务端为客户端返回的IBinder对象；</p>
+<h3 id="3-3、数据流向"><a href="#3-3、数据流向" class="headerlink" title="3.3、数据流向"></a>3.3、数据流向</h3><h4 id="3-3-1、in"><a href="#3-3-1、in" class="headerlink" title="3.3.1、in"></a>3.3.1、in</h4><p>查看flag为in的接口方法的具体实现，从客户端调用开始：</p>
+<pre><code>ImageData imageData = new ImageData();
+imageData.setmImageName(&quot;client in&quot;);
+imageData.setmImageArray(new byte[3]);
+// 通过Proxy代理对象调用远程服务
+ImageData re = imageShareInterface.showImageIn(imageData);</code></pre><p>查看代理类Proxy的showImageIn()方法实现：</p>
+<pre><code>@Override public cn.com.ultrapower.aidl_service.bean.ImageData showImageIn(cn.com.ultrapower.aidl_service.bean.ImageData data) throws android.os.RemoteException {
+  android.os.Parcel _data = android.os.Parcel.obtain();
+  android.os.Parcel _reply = android.os.Parcel.obtain();
+  cn.com.ultrapower.aidl_service.bean.ImageData _result;
+  try {
+    _data.writeInterfaceToken(DESCRIPTOR);
+    // 参数data由客户端传入，不为null
+    if ((data!=null)) {
+      // 标志位
+      _data.writeInt(1);
+      // 写入序列化对象
+      data.writeToParcel(_data, 0);
+    } else {
+      _data.writeInt(0);
+    }
+    // 调动服务端Stub的transact()方法
+    boolean _status = mRemote.transact(Stub.TRANSACTION_showImageIn, _data, _reply, 0);
+    if (!_status &amp;&amp; getDefaultImpl() != null) {
+      return getDefaultImpl().showImageIn(data);
+    }
+    _reply.readException();
+    if ((0!=_reply.readInt())) {
+      // 将序列化内容写入结果
+      _result = cn.com.ultrapower.aidl_service.bean.ImageData.CREATOR.createFromParcel(_reply);
+    } else {
+      _result = null;
+    }
+  } finally {
+    _reply.recycle();
+    _data.recycle();
+  }
+  // 返回
+  return _result;
+}</code></pre><p>由上面代码可知，代理类的对应方法，拿到客户端传入的对象参数，设置相关标志位，写入序列化对象，调用远程服务的transact()方法，最后将结果从序列化对象中拿出并返回，此时客户端就可以拿到服务端返回给客户端的对象；</p>
+<p>查看Stub的transact()方法：</p>
+<pre><code>@Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException {
+  java.lang.String descriptor = DESCRIPTOR;
+  switch (code) {
+    case TRANSACTION_showImageIn: {
+      data.enforceInterface(descriptor);
+      // _arg0即客户端传入的参数对象
+      cn.com.ultrapower.aidl_service.bean.ImageData _arg0;
+      if ((0!=data.readInt())) {
+        _arg0 = cn.com.ultrapower.aidl_service.bean.ImageData.CREATOR.createFromParcel(data);
+      } else {
+        _arg0 = null;
+      }
+      // 调用服务端对应的方法，拿到结果值
+      cn.com.ultrapower.aidl_service.bean.ImageData _result = this.showImageIn(_arg0);
+      reply.writeNoException();
+      if ((_result!=null)) {
+        reply.writeInt(1);
+        // 将结果写入序列化对象
+        _result.writeToParcel(reply, android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+      } else {
+        reply.writeInt(0);
+      }
+      return true;
+    }  
+  }
+}</code></pre><p>有上面代码可知，在调用Stub的transact()方法时，通过判断code(即对应方法的标识)，拿到客户端传入的参数，写入序列化，调用服务端的具体实现，将客户端参数传入，拿到结果值，将结果值写入序列化，并返回为true；</p>
+<p>代理类Proxy中从序列化中读出服务端修改的值，即_result，返回给客户端，所以此时客户端拿到服务端传递的值；</p>
+<p>所以对应客户端本地设置的值危改变，服务端返回的对象为服务端修改过的值；</p>
+<pre><code>E/tag: client in ImageData{mImageName=&apos;client in&apos;, mImageSize=3, mImageArray=[0, 0, 0]}
+    client in2 ImageData{mImageName=&apos;client in&apos;, mImageSize=2, mImageArray=[0, 0]}</code></pre><h4 id="3-3-2、out"><a href="#3-3-2、out" class="headerlink" title="3.3.2、out"></a>3.3.2、out</h4><p>out类型方法的客户端调用：</p>
+<pre><code>ImageData imageData2 = new ImageData();
+imageData2.setmImageName(&quot;client out&quot;);
+imageData2.setmImageArray(new byte[4]);
+// 通过Proxy代理对象调用远程服务
+ImageData re = imageShareInterface.showImageOut(imageData2);</code></pre><p>查看代理类Proxy的showImageOut()方法：</p>
+<pre><code>@Override public cn.com.ultrapower.aidl_service.bean.ImageData showImageOut(cn.com.ultrapower.aidl_service.bean.ImageData data) throws android.os.RemoteException {
+  android.os.Parcel _data = android.os.Parcel.obtain();
+  android.os.Parcel _reply = android.os.Parcel.obtain();
+  cn.com.ultrapower.aidl_service.bean.ImageData _result;
+  try {
+    _data.writeInterfaceToken(DESCRIPTOR);
+    // 调用Stub的transact()方法
+    boolean _status = mRemote.transact(Stub.TRANSACTION_showImageOut, _data, _reply, 0);
+    if (!_status &amp;&amp; getDefaultImpl() != null) {
+      return getDefaultImpl().showImageOut(data);
+    }
+    _reply.readException();
+    if ((0!=_reply.readInt())) {
+      // 拿到服务端设置后的对象
+      _result = cn.com.ultrapower.aidl_service.bean.ImageData.CREATOR.createFromParcel(_reply);
+    } else {
+      _result = null;
+    }
+    if ((0!=_reply.readInt())) {
+      // 这里注意，data对象从序列化从读取，即服务端操作之后的数据，客户端的参数随之变化
+      // 注释1
+      data.readFromParcel(_reply);
+    }
+  } finally {
+    _reply.recycle();
+    _data.recycle();
+  }
+  return _result;
+}</code></pre><p>调用Stub的transact()方法：</p>
+<pre><code>@Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException {
+  java.lang.String descriptor = DESCRIPTOR;
+  switch (code) {
+    case TRANSACTION_showImageOut: {
+      data.enforceInterface(descriptor);
+      cn.com.ultrapower.aidl_service.bean.ImageData _arg0;
+      // new出对象作为参数
+      _arg0 = new cn.com.ultrapower.aidl_service.bean.ImageData();
+      // 使用new的新对象作为参数调用服务端的具体实现方法，拿到结果值
+      cn.com.ultrapower.aidl_service.bean.ImageData _result = this.showImageOut(_arg0);
+      reply.writeNoException();
+      if ((_result!=null)) {
+        reply.writeInt(1);
+        // 写入序列化
+        _result.writeToParcel(reply, android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+      } else {
+        reply.writeInt(0);
+      }
+      if ((_arg0!=null)) {
+        reply.writeInt(1);
+        // 参数写入序列化，即服务端修改后的
+        // 注释2
+        _arg0.writeToParcel(reply, android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+      } else {
+        reply.writeInt(0);
+      }
+      return true;
+    }
+  }
+}</code></pre><p>有上面代码可知，客户端传入的参数并没有实际传入的服务端的具体方法中，而是在这里新new了一个参数对象，调用服务端的具体实现方法，拿到结果值，并写入序列化，后面将该参数也写入序列化，即注释2处，该参数为服务端修改之后的；</p>
+<p>在上面代理类的方法中，拿到服务端写入序列化的结果值，返回给客户端，这里注意注释1处，data从序列化中读取_reply，即服务端修改后写入序列化的值，此时客户端的参数随之变化，即服务的修改结果也随之同步到了客户端，这也是在客户端中new的参数对象也跟服务端返回的值是一样的，如下日志：</p>
+<pre><code>E/tag: client out ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}
+    client out2 ImageData{mImageName=&apos;null&apos;, mImageSize=2, mImageArray=[0, 0]}</code></pre><p>注：</p>
+<p>这里还有一个注意的，在论坛之前看到过有人讨论，既然out类型的方法，客户端传入的值没有被服务端使用，为何还需要传过去，传一个null不行吗？</p>
+<p>实际是不行的，通过测试打印日志也可以看出（上面2.3.2中out方法的调用里面注释掉的那句就是测试代码），此时服务端的实现方法中并没有执行参数为null后新建对象，因为在Stub中已经新建传递过去，但是客户端会崩溃调！！！</p>
+<p>查看打印出的日志可知，在接口文件中的代理类Proxy的showImageOut()方法中报错，即上面注释1处“ data.readFromParcel(_reply);”这行代码，如果客户端传入null，此时data为null，无法将序列化中的值读入到一个空对象中，这里也说明了服务端修改的值向客户端的参数的同步；</p>
+<h4 id="3-3-3、inout"><a href="#3-3-3、inout" class="headerlink" title="3.3.3、inout"></a>3.3.3、inout</h4><p>inout方法结合上面两者in和out推导，此处略；</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android-IPC/" rel="tag"># Android IPC</a>
+          
+            <a href="/tags/Binder/" rel="tag"># Binder</a>
+          
+            <a href="/tags/%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E8%AE%AF/" rel="tag"># 进程间通讯</a>
+          
+            <a href="/tags/AIDL/" rel="tag"># AIDL</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/Java%E7%BC%96%E8%AF%91%E5%90%8E%E7%9A%84class%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90/" rel="next" title="Java编译后的class文件解析">
+                <i class="fa fa-chevron-left"></i> Java编译后的class文件解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="prev" title="Zygote进程启动流程">
+                Zygote进程启动流程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、AIDL文件"><span class="nav-text">1、AIDL文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1、文件类型"><span class="nav-text">1.1、文件类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2、数据类型"><span class="nav-text">1.2、数据类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1、默认支持类型"><span class="nav-text">1.2.1、默认支持类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2、parcelable对象"><span class="nav-text">1.2.2、parcelable对象</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3、定向tag"><span class="nav-text">1.3、定向tag</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1、in"><span class="nav-text">1.3.1、in</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2、out"><span class="nav-text">1.3.2、out</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3、inout"><span class="nav-text">1.3.3、inout</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4、两种aidl文件"><span class="nav-text">1.4、两种aidl文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、AIDL的使用"><span class="nav-text">2、AIDL的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、定义-aidl文件"><span class="nav-text">2.1、定义.aidl文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1、实体类定义"><span class="nav-text">2.1.1、实体类定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2、-aidl接口定义"><span class="nav-text">2.1.2、.aidl接口定义</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、server端实现"><span class="nav-text">2.2、server端实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3、client端实现"><span class="nav-text">2.3、client端实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1、绑定服务"><span class="nav-text">2.3.1、绑定服务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2、调用服务"><span class="nav-text">2.3.2、调用服务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4、结果日志"><span class="nav-text">2.4、结果日志</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1、服务端日志"><span class="nav-text">2.4.1、服务端日志</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2、客户端日志"><span class="nav-text">2.4.2、客户端日志</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3、数据流向源码分析"><span class="nav-text">3、数据流向源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1、server端接口对象"><span class="nav-text">3.1、server端接口对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2、client端代理对象"><span class="nav-text">3.2、client端代理对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3、数据流向"><span class="nav-text">3.3、数据流向</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1、in"><span class="nav-text">3.3.1、in</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2、out"><span class="nav-text">3.3.2、out</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-3、inout"><span class="nav-text">3.3.3、inout</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

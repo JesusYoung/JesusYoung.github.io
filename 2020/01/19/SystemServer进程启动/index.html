@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android系统启动,App启动流程,Android源码," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="文章已同步CSDN：SystemServer进程启动 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、SystemServer进程作用SystemServer进程主要是用于创建系统服务的，例如AMS、WMS、PMS； SystemService进程被创建后，主要的处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SystemServer进程启动">
+<meta property="og:url" content="http://yoursite.com/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="文章已同步CSDN：SystemServer进程启动 使用到的相关源码：https:&#x2F;&#x2F;github.com&#x2F;JesusYoung&#x2F;AndroidResourceCode9.0&#x2F;tree&#x2F;master 基于Android 9.0 1、SystemServer进程作用SystemServer进程主要是用于创建系统服务的，例如AMS、WMS、PMS； SystemService进程被创建后，主要的处理">
+<meta property="article:published_time" content="2020-01-19T07:38:03.000Z">
+<meta property="article:modified_time" content="2020-01-19T08:33:58.152Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="Android系统启动">
+<meta property="article:tag" content="App启动流程">
+<meta property="article:tag" content="Android源码">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/01/19/SystemServer进程启动/"/>
+
+
+
+
+
+  <title>SystemServer进程启动 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">SystemServer进程启动</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-01-19T15:38:03+08:00">
+                2020-01-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/01/19/SystemServer%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" class="leancloud_visitors" data-flag-title="SystemServer进程启动">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>文章已同步CSDN：<a href="https://blog.csdn.net/freelander_j/article/details/104021918" target="_blank" rel="noopener">SystemServer进程启动</a></p>
+<p>使用到的相关源码：<a href="https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master" target="_blank" rel="noopener">https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master</a></p>
+<p>基于Android 9.0</p>
+<h2 id="1、SystemServer进程作用"><a href="#1、SystemServer进程作用" class="headerlink" title="1、SystemServer进程作用"></a>1、SystemServer进程作用</h2><p>SystemServer进程主要是用于创建系统服务的，例如AMS、WMS、PMS；</p>
+<p>SystemService进程被创建后，主要的处理如下：</p>
+<ul>
+<li>初始化一些系统设置，虚拟机配置等；</li>
+<li>启动Binder线程池，这样就可以与其他进程进行Binder跨进程通信；</li>
+<li>创建SystemServiceManager，它用来对系统服务进行创建、启动和生命周期管理；</li>
+<li>创建主线程Looper并进入循环等待消息；</li>
+<li>启动各种系统服务：引导服务、核心服务、其他服务，如引导服务ActivityManagerService、PackageManagerService和其他服务WindowManagerService、InputManagerService即可；</li>
+</ul>
+<h2 id="2、SystemServer进程启动流程"><a href="#2、SystemServer进程启动流程" class="headerlink" title="2、SystemServer进程启动流程"></a>2、SystemServer进程启动流程</h2><h3 id="2-1、Zygote进程调用"><a href="#2-1、Zygote进程调用" class="headerlink" title="2.1、Zygote进程调用"></a>2.1、Zygote进程调用</h3><h4 id="2-1-1、启动参数"><a href="#2-1-1、启动参数" class="headerlink" title="2.1.1、启动参数"></a>2.1.1、启动参数</h4><p>在Init进程启动时，解析init.rc文件时，拿到相关启动参数，其中参数中包含“–start-system-server”，表示启动时要启动SystemServer进程，最终Zygote进程拿到相关参数，所以startSystemServer值为true；</p>
+<h4 id="2-1-2、Zygote进程fork"><a href="#2-1-2、Zygote进程fork" class="headerlink" title="2.1.2、Zygote进程fork"></a>2.1.2、Zygote进程fork</h4><p>在Zygote进程启动后，执行ZygoteInit类的main()方法，通过fork的方式启动SystemServer；</p>
+<p>启动完SystemServer之后会返回一个Runnable对象，在父进程Zygote中该Runnable对象为null，子进程SystemServer中不为null，会在SystemServer进程中执行该Runnable对象；</p>
+<pre><code>public static void main(String argv[]) {
+  ZygoteServer zygoteServer = new ZygoteServer();
+  ...
+  boolean startSystemServer = false;
+  for (int i = 1; i &lt; argv.length; i++) {
+    if (&quot;start-system-server&quot;.equals(argv[i])) {
+      startSystemServer = true;
+    }...
+  }
+  ...
+  zygoteServer.registerServerSocketFromEnv(socketName);
+  ...
+  if (startSystemServer) {
+    Runnable r = forkSystemServer(abiList, socketName, zygoteServer);
+    // {@code r == null} in the parent (zygote) process, and {@code r != null} in the
+    // child (system_server) process.
+    if (r != null) {
+      r.run();
+      return;
+    }
+  }
+  ...
+}</code></pre><p>在forkSystemServer()方法中，通过硬编码的方法写入启动参数数组，调用ZygoteConnection.Arguments类去解析该参数数组，最后调用Zygote类的forkSystemServer()方法去请求fork SystemServer进程；</p>
+<p>如果fork成功，在父进程中会返回子进程的pid，子进程中会返回pid=0，并且子进程会继续从该处执行，判断pid大于0，如果有两个Zygote进程，则需要等待另一个也完成，然后子进程清除调从父进程fork过来的socket信息，继续执行handleSystemServerProcess()方法；</p>
+<pre><code>private static Runnable forkSystemServer(String abiList, String socketName, ZygoteServer zygoteServer) {
+  ...
+  String args[] = {
+    &quot;--setuid=1000&quot;,
+    &quot;--setgid=1000&quot;,
+    &quot;--setgroups=1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1018,1021,1023,1024,1032,1065,3001,3002,3003,3006,3007,3009,3010&quot;,
+    &quot;--capabilities=&quot; + capabilities + &quot;,&quot; + capabilities,
+    &quot;--nice-name=system_server&quot;,
+    &quot;--runtime-args&quot;,
+    &quot;--target-sdk-version=&quot; + VMRuntime.SDK_VERSION_CUR_DEVELOPMENT,
+    &quot;com.android.server.SystemServer&quot;,
+  };
+  ZygoteConnection.Arguments parsedArgs = null;
+  int pid;
+  try {
+    parsedArgs = new ZygoteConnection.Arguments(args);
+    ...
+    /* Request to fork the system server process */
+    pid = Zygote.forkSystemServer(
+      parsedArgs.uid, parsedArgs.gid,
+      parsedArgs.gids,
+      parsedArgs.runtimeFlags,
+      null,
+      parsedArgs.permittedCapabilities,
+      parsedArgs.effectiveCapabilities);
+  } catch (IllegalArgumentException ex) {
+    throw new RuntimeException(ex);
+  }
+  /* For child process */
+  if (pid == 0) {
+    if (hasSecondZygote(abiList)) {
+      waitForSecondaryZygote(socketName);
+    }
+    zygoteServer.closeServerSocket();
+    return handleSystemServerProcess(parsedArgs);
+  }
+  return null;
+}</code></pre><p>在Zygote的forkSystemServer()方法中，会先重置线程优先级，然后调用native方法去执行fork；</p>
+<pre><code>public static int forkSystemServer(int uid, int gid, int[] gids, int runtimeFlags, 
+                                   int[][] rlimits, long permittedCapabilities, long effectiveCapabilities) {
+  VM_HOOKS.preFork();
+  // Resets nice priority for zygote process.
+  resetNicePriority();
+  int pid = nativeForkSystemServer(uid, gid, gids, runtimeFlags, rlimits, permittedCapabilities, effectiveCapabilities);
+  ...
+  VM_HOOKS.postForkCommon();
+  return pid;
+}
+
+native private static int nativeForkSystemServer(int uid, int gid, int[] gids, 
+                                                 int runtimeFlags, int[][] rlimits, 
+                                                 long permittedCapabilities, 
+                                                 long effectiveCapabilities);</code></pre><h4 id="2-1-3、进入Native层方法"><a href="#2-1-3、进入Native层方法" class="headerlink" title="2.1.3、进入Native层方法"></a>2.1.3、进入Native层方法</h4><p>Zygote类对应的native方法在AndroidRuntime.cpp中注册的，调用com_android_internal_os_Zygote.cpp中的register_com_android_internal_os_Zygote()方法建立native方法的映射关系；</p>
+<p>在native方法中又调用ForkAndSpecializeCommon()方法，创建完成后Zygote进程会去检查SystemServer是否已经启动，如果system_server创建失败后，会重启zygote进程，Zygote进程和SystemServer进程是Android系统的两个重要的进程，二者缺一不可，否则就无法正常运行；</p>
+<pre><code>static jint com_android_internal_os_Zygote_nativeForkSystemServer(
+  JNIEnv* env, jclass, uid_t uid, gid_t gid, jintArray gids, jint runtime_flags, 
+  jobjectArray rlimits, jlong permittedCapabilities, jlong effectiveCapabilities) {
+  pid_t pid = ForkAndSpecializeCommon(env, uid, gid, gids, runtime_flags, rlimits, 
+                                      permittedCapabilities, effectiveCapabilities,
+                                      MOUNT_EXTERNAL_DEFAULT, NULL, NULL, true, NULL,
+                                      NULL, false, NULL, NULL);
+  ...
+  if (pid &gt; 0) {
+    int status;
+    if (waitpid(pid, &amp;status, WNOHANG) == pid) {
+      ALOGE(&quot;System server process %d has died. Restarting Zygote!&quot;, pid);
+      RuntimeAbort(env, __LINE__, &quot;System server process has died. Restarting Zygote!&quot;);
+    }
+  }
+  return pid;
+}</code></pre><h4 id="2-1-4、fork进程"><a href="#2-1-4、fork进程" class="headerlink" title="2.1.4、fork进程"></a>2.1.4、fork进程</h4><p>在ForkAndSpecializeCommon()方法中，调用fork()函数去从父进程Zygote中fork出子进程，即SystemServer进程，然后根据进程pid去判断，做一些初始化工作；</p>
+<p>在进程fork的时候，操作系统会复制一个与父进程完全相同的子进程，共享代码空间，但是数据空间是互相独立的，子进程数据空间中的内容是父进程的完整拷贝，指令指针也完全相同，子进程拥有父进程当前运行到的位置（两进程的程序计数器pc值相同，也就是说，子进程是从fork返回处开始执行的），但是两者返回的pid是不同的，如果fork成功，子进程中会返回pid=0，父进程Zygote中会返回子进程的pid，fork失败父进程中会返回负数；</p>
+<p>子进程SystemServer创建成功之后，会将从父进程拷贝过来的数据做一些初始化操作；</p>
+<pre><code>// Utility routine to fork zygote and specialize the child process.
+static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids,
+                                     jint runtime_flags, jobjectArray javaRlimits,
+                                     jlong permittedCapabilities, jlong effectiveCapabilities,
+                                     jint mount_external,
+                                     jstring java_se_info, jstring java_se_name,
+                                     bool is_system_server, jintArray fdsToClose,
+                                     jintArray fdsToIgnore, bool is_child_zygote,
+                                     jstring instructionSet, jstring dataDir) {
+  SetSignalHandlers();
+  ...
+  pid_t pid = fork();
+  if (pid == 0) {
+    // pid = 0 为在子进程中，即SystemServer进程，然后做一系列初始化工作
+    ...
+  } else if (pid &gt; 0) {
+    // pid &gt; 0 为在父进程中，即Zygote进程
+    ...
+  }
+  return pid;
+}</code></pre><h4 id="2-1-5、Java层获取到结果"><a href="#2-1-5、Java层获取到结果" class="headerlink" title="2.1.5、Java层获取到结果"></a>2.1.5、Java层获取到结果</h4><p>此时子进程SystemServer进程fork成功，顺着调用的API返回到ZygoteInit类的forkSystemServer()方法中，此时在Native层fork进程完成，结果返回到Java层，SystemServer进程从fork之后开始执行，即handleSystemServerProcess()；</p>
+<h4 id="2-1-6、SystemServer进程相关设置"><a href="#2-1-6、SystemServer进程相关设置" class="headerlink" title="2.1.6、SystemServer进程相关设置"></a>2.1.6、SystemServer进程相关设置</h4><p>初始化SystemServer进程名，创建类加载器等，继续调用zygoteInit()方法；</p>
+<pre><code>private static Runnable handleSystemServerProcess(ZygoteConnection.Arguments parsedArgs) {
+  ...
+  // 设置进程名
+  if (parsedArgs.niceName != null) {
+    Process.setArgV0(parsedArgs.niceName);
+  }
+  ...
+  if (parsedArgs.invokeWith != null) {
+    ...
+  } else {
+    ClassLoader cl = null;
+    if (systemServerClasspath != null) {
+      cl = createPathClassLoader(systemServerClasspath, parsedArgs.targetSdkVersion);
+      Thread.currentThread().setContextClassLoader(cl);
+    }
+    /*
+     * Pass the remaining arguments to SystemServer.
+     */
+    return ZygoteInit.zygoteInit(parsedArgs.targetSdkVersion, parsedArgs.remainingArgs, cl);
+  }
+}</code></pre><p>在该方法中做一些初始化操作，如日志定向，通用初始化即Zygote的初始化，最后调用applicationInit()方法；</p>
+<pre><code>public static final Runnable zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader) {
+  ...
+  // 日志相关
+  RuntimeInit.redirectLogStreams();
+  RuntimeInit.commonInit();
+  ZygoteInit.nativeZygoteInit();
+  return RuntimeInit.applicationInit(targetSdkVersion, argv, classLoader);
+}</code></pre><p>RunTimeInit类中的commonInit()方法主要初始化一些通用配置，如日志、时区、Http User-agent、socket的tag等；</p>
+<pre><code>protected static final void commonInit() {
+  ...
+  // 设置时区
+  TimezoneGetter.setInstance(new TimezoneGetter() {
+    @Override
+    public String getId() {
+      return SystemProperties.get(&quot;persist.sys.timezone&quot;);
+    }
+  });
+  TimeZone.setDefault(null);
+  ...
+  // 设置默认的HTTP User-agent格式
+  String userAgent = getDefaultUserAgent();
+  System.setProperty(&quot;http.agent&quot;, userAgent);
+  ...
+}</code></pre><p>在applicationInit()方法中初始化程序退出时的设置，设置虚拟机内存利用率参数，sdk版本等，随后继续调用findStaticMain()方法；</p>
+<pre><code>protected static Runnable applicationInit(int targetSdkVersion, String[] argv, ClassLoader classLoader) {
+  // 程序退出时相关设置
+  nativeSetExitWithoutCleanup(true);
+  // 设置虚拟机的内存利用率参数值为0.75
+  VMRuntime.getRuntime().setTargetHeapUtilization(0.75f);
+  VMRuntime.getRuntime().setTargetSdkVersion(targetSdkVersion);
+  ...
+  return findStaticMain(args.startClass, args.startArgs, classLoader);
+}</code></pre><h4 id="2-1-7、进入SystemServer进程main方法"><a href="#2-1-7、进入SystemServer进程main方法" class="headerlink" title="2.1.7、进入SystemServer进程main方法"></a>2.1.7、进入SystemServer进程main方法</h4><p>在findStaticMain()方法中通过反射找到SystemServer类的main()方法，将其作为参数新建MethodAndArgsCaller对象，MethodAndArgsCaller是一个Runnable对象，其run方法里是调用该传入的方法，即执行SystemServer类的main()方法；</p>
+<pre><code>protected static Runnable findStaticMain(String className, String[] argv, ClassLoader classLoader) {
+  Class&lt;?&gt; cl;
+  try {
+    cl = Class.forName(className, true, classLoader);
+  } catch (ClassNotFoundException ex) {
+    throw new RuntimeException(&quot;Missing class when invoking static main &quot; + className, ex);
+  }
+  Method m;
+  try {
+    m = cl.getMethod(&quot;main&quot;, new Class[] { String[].class });
+  } catch (NoSuchMethodException ex) {
+    throw new RuntimeException(&quot;Missing static main on &quot; + className, ex);
+  } catch (SecurityException ex) {
+    throw new RuntimeException(
+      &quot;Problem getting static main on &quot; + className, ex);
+  }
+  ...
+  return new MethodAndArgsCaller(m, argv);
+}</code></pre><h3 id="2-2、SystemServer进程工作"><a href="#2-2、SystemServer进程工作" class="headerlink" title="2.2、SystemServer进程工作"></a>2.2、SystemServer进程工作</h3><p>SystemServer的run()方法中，做了大量的初始化操作，如设置系统时间、设置虚拟机相关配置参数、binder调用相关、创建主线程Looper并循环等待消息、并创建SystemServerManager等；</p>
+<pre><code>public final class SystemServer {
+  public static void main(String[] args) {
+    new SystemServer().run();
+  }
+
+  private void run() {
+    try {
+      VMRuntime.getRuntime().clearGrowthLimit();
+      VMRuntime.getRuntime().setTargetHeapUtilization(0.8f);
+      Build.ensureFingerprintProperty();
+      Environment.setUserRequired(true);
+      BinderInternal.disableBackgroundScheduling(true);    
+      BinderInternal.setMaxThreads(sMaxBinderThreads);
+      // Prepare the main looper thread (this thread).
+      android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_FOREGROUND);
+      android.os.Process.setCanSelfBackground(false);
+      Looper.prepareMainLooper();
+      // Initialize native services.
+      System.loadLibrary(&quot;android_servers&quot;);
+      ...
+      // Initialize the system context.
+      createSystemContext();
+      mSystemServiceManager = new SystemServiceManager(mSystemContext);
+    } finally {
+      ...
+    }
+    // Start services.
+    try {
+      traceBeginAndSlog(&quot;StartServices&quot;);
+      startBootstrapServices();
+      startCoreServices();
+      startOtherServices();
+      SystemServerInitThreadPool.shutdown();
+    } catch (Throwable ex) {
+      ...
+    }
+    ...
+    // Loop forever.
+    Looper.loop();
+    throw new RuntimeException(&quot;Main thread loop unexpectedly exited&quot;);
+  }
+}</code></pre><p>此时SystemServer进入自身的Looper循环中，等待消息处理，SystemServer进程正式运行起来了；</p>
+<h4 id="2-2-1、初始化配置"><a href="#2-2-1、初始化配置" class="headerlink" title="2.2.1、初始化配置"></a>2.2.1、初始化配置</h4><p>SystemServer启动之后，会执行一系列初始化操作，如判断系统时间是否早于1970年，设置系统时间、虚拟机内存设置、加载指纹信息、Binder调用的优先级、Binder线程池的最大数量、创建主线程Looper、加载android_servers库、初始化系统上下文、创建SystemServerManager等；</p>
+<h4 id="2-2-2、创建SystemServerManager"><a href="#2-2-2、创建SystemServerManager" class="headerlink" title="2.2.2、创建SystemServerManager"></a>2.2.2、创建SystemServerManager</h4><p>在run()方法中，会先执行createSystemContext()方法创建系统上下文对象，mSystemContext对象是从ActivityThread获取的，调用ActivityThread的systemMain()方法，执行其attach()方法，创建出App的context，及执行Application的onCreate()方法，系统上下文对象是通过ActivityThread的getSystemContext()方法获取，调用ContextImpl类的createSystemContext()方法创建；</p>
+<pre><code>private void createSystemContext() {
+  ActivityThread activityThread = ActivityThread.systemMain();
+  mSystemContext = activityThread.getSystemContext();
+  mSystemContext.setTheme(DEFAULT_SYSTEM_THEME);
+  final Context systemUiContext = activityThread.getSystemUiContext();
+  systemUiContext.setTheme(DEFAULT_SYSTEM_THEME);
+}
+
+# ActivityThread
+public static ActivityThread systemMain() {
+  ...
+  ActivityThread thread = new ActivityThread();
+  thread.attach(true, 0);
+  return thread;
+}
+
+private void attach(boolean system, long startSeq) {
+  ...
+  if (!system) {
+    ...
+  } else {
+    ...
+    try {
+      ...
+      ContextImpl context = ContextImpl.createAppContext(this, getSystemContext().mPackageInfo);
+      mInitialApplication = context.mPackageInfo.makeApplication(true, null);
+      mInitialApplication.onCreate();
+    } catch (Exception e) {
+      throw new RuntimeException(&quot;Unable to instantiate Application():&quot; + e.toString(), e);
+    }
+  }
+  ...
+}
+
+public ContextImpl getSystemContext() {
+  synchronized (this) {
+    if (mSystemContext == null) {
+      mSystemContext = ContextImpl.createSystemContext(this);
+    }
+    return mSystemContext;
+  }
+}</code></pre><p>拿到上下文对象，去创建SystemServerManager对象；</p>
+<pre><code>mSystemServiceManager = new SystemServiceManager(mSystemContext);
+
+// SystemServiceManager
+public class SystemServiceManager {
+  SystemServiceManager(Context context) {
+    mContext = context;
+  }
+}</code></pre><h4 id="2-2-3、启动引导服务"><a href="#2-2-3、启动引导服务" class="headerlink" title="2.2.3、启动引导服务"></a>2.2.3、启动引导服务</h4><p>SystemServer调用startBootstrapServices()方法去启动一系列的引导服务，如ActivityManagerService、PackageManagerService等；</p>
+<pre><code>private void startBootstrapServices() {
+  ...
+  // 启动AMS
+  mActivityManagerService = mSystemServiceManager.startService(ActivityManagerService.Lifecycle.class).getService();
+  mActivityManagerService.setSystemServiceManager(mSystemServiceManager);
+  mActivityManagerService.setInstaller(installer);
+  ...
+  // 启动PMS
+  mPackageManagerService = PackageManagerService.main(mSystemContext, installer, mFactoryTestMode != FactoryTest.FACTORY_TEST_OFF, mOnlyCore);
+  mFirstBoot = mPackageManagerService.isFirstBoot();
+  mPackageManager = mSystemContext.getPackageManager();
+  ...
+}</code></pre><h4 id="2-2-4、启动核心服务"><a href="#2-2-4、启动核心服务" class="headerlink" title="2.2.4、启动核心服务"></a>2.2.4、启动核心服务</h4><p>启动核心服务，如电量管理服务、WebViewUpdateService等；</p>
+<pre><code>private void startCoreServices() {
+  ...
+  mSystemServiceManager.startService(BatteryService.class);
+  ...
+  if (mPackageManager.hasSystemFeature(PackageManager.FEATURE_WEBVIEW)) {
+    traceBeginAndSlog(&quot;StartWebViewUpdateService&quot;);
+    mWebViewUpdateService = mSystemServiceManager.startService(WebViewUpdateService.class);
+    traceEnd();
+  }
+  ...
+}</code></pre><h4 id="2-2-5、启动其他服务"><a href="#2-2-5、启动其他服务" class="headerlink" title="2.2.5、启动其他服务"></a>2.2.5、启动其他服务</h4><p>调用startOtherServices()方法创建其他服务，如NetworkManagementService、WindowManagerService、InputManagerService等；</p>
+<p>并且在该方法中会执行ActivityManagerService的systemReady()方法，通过调用该方法会启动Launcher进程，即桌面App，桌面本身就是一个App进程；</p>
+<pre><code>private void startOtherServices() {
+  ...
+  try {
+    networkManagement = NetworkManagementService.create(context);
+    ServiceManager.addService(Context.NETWORKMANAGEMENT_SERVICE, networkManagement);
+  }
+  ...
+  // WMS
+  wm = WindowManagerService.main(context, inputManager, mFactoryTestMode != FactoryTest.FACTORY_TEST_LOW_LEVEL, !mFirstBoot, mOnlyCore, new PhoneWindowManager());
+  ServiceManager.addService(Context.WINDOW_SERVICE, wm, /* allowIsolated= */ false, DUMP_FLAG_PRIORITY_CRITICAL | DUMP_FLAG_PROTO);
+  ...
+}</code></pre><h4 id="2-2-6、Looper循环消息"><a href="#2-2-6、Looper循环消息" class="headerlink" title="2.2.6、Looper循环消息"></a>2.2.6、Looper循环消息</h4><p>创建了主线程Looper，并执行loop()函数开启消息轮训等待消息到来；</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android%E7%B3%BB%E7%BB%9F%E5%90%AF%E5%8A%A8/" rel="tag"># Android系统启动</a>
+          
+            <a href="/tags/App%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="tag"># App启动流程</a>
+          
+            <a href="/tags/Android%E6%BA%90%E7%A0%81/" rel="tag"># Android源码</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/Zygote%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="next" title="Zygote进程启动流程">
+                <i class="fa fa-chevron-left"></i> Zygote进程启动流程
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" rel="prev" title="Launcher进程启动">
+                Launcher进程启动 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、SystemServer进程作用"><span class="nav-text">1、SystemServer进程作用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、SystemServer进程启动流程"><span class="nav-text">2、SystemServer进程启动流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、Zygote进程调用"><span class="nav-text">2.1、Zygote进程调用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1、启动参数"><span class="nav-text">2.1.1、启动参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2、Zygote进程fork"><span class="nav-text">2.1.2、Zygote进程fork</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3、进入Native层方法"><span class="nav-text">2.1.3、进入Native层方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4、fork进程"><span class="nav-text">2.1.4、fork进程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-5、Java层获取到结果"><span class="nav-text">2.1.5、Java层获取到结果</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-6、SystemServer进程相关设置"><span class="nav-text">2.1.6、SystemServer进程相关设置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-7、进入SystemServer进程main方法"><span class="nav-text">2.1.7、进入SystemServer进程main方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、SystemServer进程工作"><span class="nav-text">2.2、SystemServer进程工作</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1、初始化配置"><span class="nav-text">2.2.1、初始化配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2、创建SystemServerManager"><span class="nav-text">2.2.2、创建SystemServerManager</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3、启动引导服务"><span class="nav-text">2.2.3、启动引导服务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4、启动核心服务"><span class="nav-text">2.2.4、启动核心服务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-5、启动其他服务"><span class="nav-text">2.2.5、启动其他服务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-6、Looper循环消息"><span class="nav-text">2.2.6、Looper循环消息</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
