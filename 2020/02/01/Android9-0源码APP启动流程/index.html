@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android系统启动,App启动流程,Android源码," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文使用到的相关源码路径：Android9.0 APP启动源码 1、启动简介1.1、启动流程： 点击桌面App图标，Launcher进程采用Binder IPC向system_server进程发起startActivity请求； system_server进程接收到请求后，向Zygote进程发送创建进程的请求； Zygote进程fork出新的子进程，即App进程； App进程，通过Binder I">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android9.0源码APP启动流程">
+<meta property="og:url" content="http://yoursite.com/2020/02/01/Android9-0%E6%BA%90%E7%A0%81APP%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="JesusYoung_Blog">
+<meta property="og:description" content="本文使用到的相关源码路径：Android9.0 APP启动源码 1、启动简介1.1、启动流程： 点击桌面App图标，Launcher进程采用Binder IPC向system_server进程发起startActivity请求； system_server进程接收到请求后，向Zygote进程发送创建进程的请求； Zygote进程fork出新的子进程，即App进程； App进程，通过Binder I">
+<meta property="og:image" content="http://yoursite.com/images/app_start_01.png">
+<meta property="article:published_time" content="2020-02-01T11:26:30.000Z">
+<meta property="article:modified_time" content="2020-02-01T11:54:49.734Z">
+<meta property="article:author" content="JesusYoung">
+<meta property="article:tag" content="Android系统启动">
+<meta property="article:tag" content="App启动流程">
+<meta property="article:tag" content="Android源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/app_start_01.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"right","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/02/01/Android9-0源码APP启动流程/"/>
+
+
+
+
+
+  <title>Android9.0源码APP启动流程 | JesusYoung_Blog</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-right page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">JesusYoung_Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/01/Android9-0%E6%BA%90%E7%A0%81APP%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="JesusYoung">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/header.jpeg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="JesusYoung_Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Android9.0源码APP启动流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-02-01T19:26:30+08:00">
+                2020-02-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/02/01/Android9-0%E6%BA%90%E7%A0%81APP%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2020/02/01/Android9-0%E6%BA%90%E7%A0%81APP%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2020/02/01/Android9-0%E6%BA%90%E7%A0%81APP%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" class="leancloud_visitors" data-flag-title="Android9.0源码APP启动流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文使用到的相关源码路径：<a href="https://github.com/JesusYoung/AndroidResourceCode9.0/tree/master" target="_blank" rel="noopener">Android9.0 APP启动源码</a></p>
+<h2 id="1、启动简介"><a href="#1、启动简介" class="headerlink" title="1、启动简介"></a>1、启动简介</h2><h3 id="1-1、启动流程："><a href="#1-1、启动流程：" class="headerlink" title="1.1、启动流程："></a>1.1、启动流程：</h3><ul>
+<li>点击桌面App图标，Launcher进程采用Binder IPC向system_server进程发起startActivity请求；</li>
+<li>system_server进程接收到请求后，向Zygote进程发送创建进程的请求；</li>
+<li>Zygote进程fork出新的子进程，即App进程；</li>
+<li>App进程，通过Binder IPC向sytem_server进程发起attachApplication请求；</li>
+<li>system_server进程在收到请求后，进行一系列准备工作后，再通过binder IPC向App进程发送创建Activity请求；</li>
+<li>App进程的binder线程（ApplicationThread）在收到请求后，通过handler向主线程发送消息执行创建事务；</li>
+<li>主线程在收到Message后，通过反射机制创建目标Activity，并回调Activity.onCreate()等方法；</li>
+<li>到此，App便正式启动，开始进入Activity生命周期，执行完onCreate/onStart/onResume方法，UI渲染结束后便可以看到App的主界面；</li>
+</ul>
+<h3 id="1-2、Activity启动流程图"><a href="#1-2、Activity启动流程图" class="headerlink" title="1.2、Activity启动流程图"></a>1.2、Activity启动流程图</h3><p><img src="/images/app_start_01.png" alt=""></p>
+<h3 id="1-3、其中涉及到的进程交互方式"><a href="#1-3、其中涉及到的进程交互方式" class="headerlink" title="1.3、其中涉及到的进程交互方式"></a>1.3、其中涉及到的进程交互方式</h3><ul>
+<li>Launcher进程与AMS所在的System_Server进程为AIDL方式；</li>
+<li>AMS所在的System_Server进程与Zygote进程为Socket通讯；</li>
+<li>Zygote进程与新建的APP进程为Binder IPC方式；</li>
+</ul>
+<h2 id="2、Activity启动源码"><a href="#2、Activity启动源码" class="headerlink" title="2、Activity启动源码"></a>2、Activity启动源码</h2><h3 id="2-1、Launcher进程阶段"><a href="#2-1、Launcher进程阶段" class="headerlink" title="2.1、Launcher进程阶段"></a>2.1、Launcher进程阶段</h3><p>Android中桌面也属于一个APP，也就是LauncherApp，其中桌面图标是以BubbleTextView的控件展示的，并且在Launcher中为其设置有点击事件，具体点击事件为ItemClickHandler类的INSTANCE对象；</p>
+<pre><code>public View createShortcut(ViewGroup parent, ShortcutInfo info) {
+  BubbleTextView favorite = (BubbleTextView) LayoutInflater.from(parent.getContext()).inflate(R.layout.app_icon, parent, false);
+  favorite.applyFromShortcutInfo(info);
+  // 桌面图标设置点击事件
+  favorite.setOnClickListener(ItemClickHandler.INSTANCE);
+  favorite.setOnFocusChangeListener(mFocusHandler);
+  return favorite;
+}</code></pre><h4 id="2-1-1、点击桌面图标"><a href="#2-1-1、点击桌面图标" class="headerlink" title="2.1.1、点击桌面图标"></a>2.1.1、点击桌面图标</h4><p>点击桌面图标，解析图标信息，桌面图标属于AppInfo类型，所以调用startAppShortcutOrInfoActivity()方法；</p>
+<pre><code>public static final OnClickListener INSTANCE = ItemClickHandler::onClick;
+
+private static void onClick(View v) {
+  // 略...
+    Launcher launcher = Launcher.getLauncher(v.getContext());
+  // 略...
+    Object tag = v.getTag();
+  if (tag instanceof ShortcutInfo) {
+    onClickAppShortcut(v, (ShortcutInfo) tag, launcher);
+  } else if (tag instanceof FolderInfo) {
+    // 略...
+  } else if (tag instanceof AppInfo) {
+    // 桌面图标类型为App，进入该分支
+    startAppShortcutOrInfoActivity(v, (AppInfo) tag, launcher);
+  } else if (tag instanceof LauncherAppWidgetInfo) {
+    // 略...
+  }
+}</code></pre><p>在startAppShortcutOrInfoActivity()方法中，新建Intent对象，并设置包名为null，进一步调用Launcher类的startActivitySafely()方法；</p>
+<pre><code>private static void startAppShortcutOrInfoActivity(View v, ItemInfo item, Launcher launcher) {
+  Intent intent;
+  // ...
+  if (item instanceof ShortcutInfo) {
+    ShortcutInfo si = (ShortcutInfo) item;
+    if (si.hasStatusFlag(ShortcutInfo.FLAG_SUPPORTS_WEB_UI) &amp;&amp; intent.getAction() == Intent.ACTION_VIEW) {
+      // make a copy of the intent that has the package set to null
+      // we do this because the platform sometimes disables instant
+      // apps temporarily (triggered by the user) and fallbacks to the
+      // web ui. This only works though if the package isn&apos;t set
+      intent = new Intent(intent);
+      intent.setPackage(null);
+    }
+  }
+  launcher.startActivitySafely(v, intent, item);
+}</code></pre><p>在Launcher类的startActivitySafely()方法中，会调用其父类BaseDraggingActivity的startActivitySafely()，在该方法中进行一系列判断，最终调用了startActivity()方法；</p>
+<pre><code>public boolean startActivitySafely(View v, Intent intent, ItemInfo item) {
+  // 略...
+  UserHandle user = item == null ? null : item.user;
+  // 设置开启新栈的标识位
+  // Prepare intent
+  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+  // 略...
+  try {
+    boolean isShortcut = 
+      Utilities.ATLEAST_MARSHMALLOW  // SDK版本是否大于M
+      &amp;&amp; (item instanceof ShortcutInfo)  // item类型，此处为AppInfo，所以为false
+      &amp;&amp; (item.itemType == Favorites.ITEM_TYPE_SHORTCUT || item.itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT) &amp;&amp; !((ShortcutInfo)     item).isPromise();
+    if (isShortcut) {
+      // Shortcuts need some special checks due to legacy reasons.
+      startShortcutIntentSafely(intent, optsBundle, item);
+    } else if (user == null || user.equals(Process.myUserHandle())) {
+      // 系统进程
+      // Could be launching some bookkeeping activity
+      startActivity(intent, optsBundle);
+    } else {
+      // ...
+}</code></pre><p>BaseDraggingActivity类继承自BaseActivity()，BaseActivity又继承自Activity类，在BaseDraggingActivity和BaseActivity中没有实现startActivity()方法，所以最终调用到了父类Activity类的startActivity()方法，然后继续调用startActivityForResult()方法；</p>
+<pre><code>public void startActivity(Intent intent, @Nullable Bundle options) {
+  if (options != null) {
+    startActivityForResult(intent, -1, options);
+  } else {
+    // Note we want to go through this call for compatibility with
+    // applications that may have overridden the method.
+    startActivityForResult(intent, -1);
+  }
+}
+
+public void startActivityForResult(@RequiresPermission Intent intent, int requestCode, @Nullable Bundle options) {
+  if (mParent == null) {
+    options = transferSpringboardActivityOptions(options);
+    Instrumentation.ActivityResult ar = mInstrumentation.execStartActivity(this, mMainThread.getApplicationThread(), mToken, this,     intent, requestCode, options);
+    // ...
+  } else {
+    // ...
+  }
+}</code></pre><p>在startActivityForResult()方法中执行Instrumentation类的execStartActivity()方法；</p>
+<pre><code>public ActivityResult execStartActivity(Context who, IBinder contextThread, IBinder token, Activity target, Intent intent, int requestCode, Bundle options) {
+  IApplicationThread whoThread = (IApplicationThread) contextThread;
+  // ...
+  try {
+    intent.migrateExtraStreamToClipData();
+    intent.prepareToLeaveProcess(who);
+    int result = ActivityManager.getService().startActivity(whoThread, who.getBasePackageName(), intent, intent.resolveTypeIfNeeded(who.getContentResolver()), token, target != null ? target.mEmbeddedID : null, requestCode, 0, null, options);
+    checkStartActivityResult(result, intent);
+  } catch (RemoteException e) {
+    throw new RuntimeException(&quot;Failure from system&quot;, e);
+  }
+  return null;
+}</code></pre><h4 id="2-1-2、Launcher进程拿到AMS的代理"><a href="#2-1-2、Launcher进程拿到AMS的代理" class="headerlink" title="2.1.2、Launcher进程拿到AMS的代理"></a>2.1.2、Launcher进程拿到AMS的代理</h4><p>这里通过ActivityManager.getService()来调用startActivity()；</p>
+<pre><code>public static IActivityManager getService() {
+  return IActivityManagerSingleton.get();
+}
+
+private static final Singleton&lt;IActivityManager&gt; IActivityManagerSingleton = new Singleton&lt;IActivityManager&gt;() {
+  @Override
+  protected IActivityManager create() {
+    final IBinder b = ServiceManager.getService(Context.ACTIVITY_SERVICE);
+    final IActivityManager am = IActivityManager.Stub.asInterface(b);
+    return am;
+  }
+};</code></pre><p>以上可知，Launcher进程与AMS所在的system_server进程的IPC方式为AIDL通信，即Binder IPC方式；</p>
+<p>对比旧版本中的ActivityManagerNative中，已经标注该类已过时；</p>
+<pre><code>/**
+ * {@hide}
+ * @deprecated will be removed soon. See individual methods for alternatives.
+ */
+@Deprecated
+public abstract class ActivityManagerNative {
+  /**
+   * Cast a Binder object into an activity manager interface, generating
+   * a proxy if needed.
+   *
+   * @deprecated use IActivityManager.Stub.asInterface instead.
+   */
+  static public IActivityManager asInterface(IBinder obj) {
+    return IActivityManager.Stub.asInterface(obj);
+  }
+  //...
+}</code></pre><h4 id="2-1-3、向AMS进程发起创建请求"><a href="#2-1-3、向AMS进程发起创建请求" class="headerlink" title="2.1.3、向AMS进程发起创建请求"></a>2.1.3、向AMS进程发起创建请求</h4><p>Launcher进程拿到AMS在Launcher进程中的代理之后，通过代理对象调用接口方法，根据aidl通信可知，会调用到AMS的具体实现类，由此进入到system_server进程；</p>
+<pre><code>ActivityManager.getService().startActivity</code></pre><h3 id="2-2、system-server进程阶段"><a href="#2-2、system-server进程阶段" class="headerlink" title="2.2、system_server进程阶段"></a>2.2、system_server进程阶段</h3><p>AMS是所有Activity的管理者，位于Android system_server进程中；</p>
+<h4 id="2-2-1、AMS向Zygote发起创建进程请求"><a href="#2-2-1、AMS向Zygote发起创建进程请求" class="headerlink" title="2.2.1、AMS向Zygote发起创建进程请求"></a>2.2.1、AMS向Zygote发起创建进程请求</h4><p>ActivityManagerService也实现了IActivityManager.Stub接口，执行其startActivity()方法，经过多次重载函数的调用；</p>
+<pre><code>public class ActivityManagerService extends IActivityManager.Stub implements Watchdog.Monitor, BatteryStatsImpl.BatteryCallback {
+  @Override
+  public final int startActivity(IApplicationThread caller, String callingPackage, Intent intent, String resolvedType, IBinder resultTo, String resultWho, int requestCode, int startFlags, ProfilerInfo profilerInfo, Bundle bOptions) {
+    return startActivityAsUser(caller, callingPackage, intent, resolvedType, resultTo, resultWho, requestCode, startFlags, profilerInfo, bOptions, UserHandle.getCallingUserId());
+  }
+
+    @Override
+  public final int startActivityAsUser(IApplicationThread caller, String callingPackage, Intent intent, String resolvedType, IBinder resultTo, String resultWho, int requestCode, int startFlags, ProfilerInfo profilerInfo, Bundle bOptions, int userId) {
+    return startActivityAsUser(caller, callingPackage, intent, resolvedType, resultTo, resultWho, requestCode, startFlags, profilerInfo, bOptions, userId, true /*validateIncomingUser*/);
+  }
+
+    public final int startActivityAsUser(IApplicationThread caller, String callingPackage, Intent intent, String resolvedType, IBinder resultTo, String resultWho, int requestCode, int startFlags, ProfilerInfo profilerInfo, Bundle bOptions, int userId, boolean validateIncomingUser) {
+    enforceNotIsolatedCaller(&quot;startActivity&quot;);
+    userId = mActivityStartController.checkTargetUser(userId, validateIncomingUser, Binder.getCallingPid(), Binder.getCallingUid(), &quot;startActivityAsUser&quot;);
+    // TODO: Switch to user app stacks here.
+    return mActivityStartController.obtainStarter(intent, &quot;startActivityAsUser&quot;)
+      .setCaller(caller)
+      .setCallingPackage(callingPackage)
+      .setResolvedType(resolvedType)
+      .setResultTo(resultTo)
+      .setResultWho(resultWho)
+      .setRequestCode(requestCode)
+      .setStartFlags(startFlags)
+      .setProfilerInfo(profilerInfo)
+      .setActivityOptions(bOptions)
+      .setMayWait(userId)
+      .execute();
+  }
+  // ...
+}</code></pre><p>最后执行mActivityStartController.obtainStarter().execute()，mActivityStartController是ActivityStartController类对象，查看其obtainStarter()方法；</p>
+<pre><code>/**
+ * @return A starter to configure and execute starting an activity. It is valid until after
+ *         {@link ActivityStarter#execute} is invoked. At that point, the starter should be
+ *         considered invalid and no longer modified or used.
+ */
+ActivityStarter obtainStarter(Intent intent, String reason) {
+  return mFactory.obtain().setIntent(intent).setReason(reason);
+}</code></pre><p>返回一个ActivityStarter对象，并将Intent对象设置进去，已经reason，即调用方传的“startActivityAsUser”参数；</p>
+<p>ActivityStarter类中查看对应方法，这里需要注意setMayWait()方法；</p>
+<pre><code>ActivityStarter setMayWait(int userId) {
+  mRequest.mayWait = true;
+  mRequest.userId = userId;
+  return this;
+}</code></pre><p>该方法中将mRequest的mayWait属性设置为true，并设置userId，继续执行execute()方法，判断mRequest.mayWait是否为ture，进入对应的分支；</p>
+<pre><code>/**
+ * Starts an activity based on the request parameters provided earlier.
+ * @return The starter result.
+ */
+int execute() {
+  try {
+    // TODO(b/64750076): Look into passing request directly to these methods to allow
+    // for transactional diffs and preprocessing.
+    if (mRequest.mayWait) {
+      return startActivityMayWait(mRequest.caller, mRequest.callingUid,  
+                                  mRequest.callingPackage, mRequest.intent,  
+                                  mRequest.resolvedType, mRequest.voiceSession,  
+                                  mRequest.voiceInteractor, mRequest.resultTo,  
+                                  mRequest.resultWho, mRequest.requestCode, 
+                                  mRequest.startFlags, mRequest.profilerInfo,  
+                                  mRequest.waitResult, mRequest.globalConfig, 
+                                  mRequest.activityOptions, mRequest.ignoreTargetSecurity, 
+                                  mRequest.userId, mRequest.inTask, mRequest.reason,  
+                                  mRequest.allowPendingRemoteAnimationRegistryLookup, 
+                                  mRequest.originatingPendingIntent);
+    } else {
+      // ...
+    } finally {
+      onExecutionComplete();
+    }
+  }</code></pre><p>这里继续调用该类的startActivityMayWait()方法；</p>
+<pre><code>private int startActivityMayWait(IApplicationThread caller, int callingUid, 
+                                 String callingPackage, Intent intent, String resolvedType, 
+                                 IVoiceInteractionSession voiceSession, 
+                                 IVoiceInteractor voiceInteractor, IBinder resultTo, 
+                                 String resultWho, int requestCode, int startFlags, 
+                                 ProfilerInfo profilerInfo, WaitResult outResult, 
+                                 Configuration globalConfig, SafeActivityOptions options, 
+                                 boolean ignoreTargetSecurity, int userId, TaskRecord inTask, 
+                                 String reason, 
+                                 boolean allowPendingRemoteAnimationRegistryLookup, 
+                                 PendingIntentRecord originatingPendingIntent) {
+  // ...
+  // Save a copy in case ephemeral needs it
+  final Intent ephemeralIntent = new Intent(intent);
+  // Don&apos;t modify the client&apos;s object!
+  intent = new Intent(intent);
+  // ...
+  // 解析Intent
+  ResolveInfo rInfo = mSupervisor.resolveIntent(intent, resolvedType, userId, 0 /* matchFlags */,  computeResolveFilterUid(callingUid, realCallingUid, mRequest.filterCallingUid));
+  // ...
+  // Collect information about the target of the Intent.
+  ActivityInfo aInfo = mSupervisor.resolveActivity(intent, rInfo, startFlags, profilerInfo);
+  // ...
+      // 用于记录Activity的数据
+      final ActivityRecord[] outRecord = new ActivityRecord[1];
+      int res = startActivity(caller, intent, ephemeralIntent, resolvedType, aInfo, rInfo, 
+                            voiceSession, voiceInteractor, resultTo, resultWho, requestCode, 
+                            callingPid, callingUid, callingPackage, realCallingPid, 
+                            realCallingUid, startFlags, options, ignoreTargetSecurity, 
+                            componentSpecified, outRecord, inTask, reason, 
+                            allowPendingRemoteAnimationRegistryLookup, 
+                            originatingPendingIntent);
+}</code></pre><p>这里继续调用该类的startActivity()方法；</p>
+<pre><code>private int startActivity(IApplicationThread caller, Intent intent, Intent ephemeralIntent, 
+                          String resolvedType, ActivityInfo aInfo, ResolveInfo rInfo, 
+                          IVoiceInteractionSession voiceSession, 
+                          IVoiceInteractor voiceInteractor, IBinder resultTo, String resultWho, 
+                          int requestCode, int callingPid, int callingUid, 
+                          String callingPackage, int realCallingPid, int realCallingUid, 
+                          int startFlags, SafeActivityOptions options, 
+                          boolean ignoreTargetSecurity, boolean componentSpecified, 
+                          ActivityRecord[] outActivity, TaskRecord inTask, String reason, 
+                          boolean allowPendingRemoteAnimationRegistryLookup, 
+                          PendingIntentRecord originatingPendingIntent) {
+  // ...
+  mLastStartActivityResult = startActivity(caller, intent, ephemeralIntent, resolvedType,     
+                                           aInfo, rInfo, voiceSession, voiceInteractor, 
+                                           resultTo, resultWho, requestCode, callingPid, 
+                                           callingUid, callingPackage, realCallingPid, 
+                                           realCallingUid, startFlags, options, 
+                                           ignoreTargetSecurity, componentSpecified, 
+                                           mLastStartActivityRecord, inTask, 
+                                           allowPendingRemoteAnimationRegistryLookup, 
+                                           originatingPendingIntent);
+    // ...
+  return getExternalResult(mLastStartActivityResult);
+}</code></pre><p>继续多次调用startActivity()重载函数；</p>
+<pre><code>private int startActivity(final ActivityRecord r, ActivityRecord sourceRecord, 
+                          IVoiceInteractionSession voiceSession, 
+                          IVoiceInteractor voiceInteractor, int startFlags, boolean doResume, 
+                          ActivityOptions options, TaskRecord inTask, 
+                          ActivityRecord[] outActivity) {
+  int result = START_CANCELED;
+  try {
+    mService.mWindowManager.deferSurfaceLayout();
+    result = startActivityUnchecked(r, sourceRecord, voiceSession, voiceInteractor, startFlags, doResume, options, inTask, outActivity);
+  } finally {
+    // ...
+  }
+  return result;
+}</code></pre><p>该方法中调用startActivityUnchecked()方法，计算启动的Flags，例如是否有NEW_TASK，并设置给intent，计算该Activity是否要插入到当前现有的任务栈中，判断栈顶Activity是否相同，是否需要复用；</p>
+<pre><code>private int startActivityUnchecked(final ActivityRecord r, ActivityRecord sourceRecord,
+                                   IVoiceInteractionSession voiceSession, 
+                                   IVoiceInteractor voiceInteractor, int startFlags, 
+                                   boolean doResume, ActivityOptions options, 
+                                   TaskRecord inTask, ActivityRecord[] outActivity) {
+  ...
+  // 计算Activity启动的Flags
+  computeLaunchingTaskFlags();
+  mIntent.setFlags(mLaunchFlags);
+  // 计算Activity是否要插入现有的任务栈中
+  ActivityRecord reusedActivity = getReusableIntentActivity();
+  ...
+  mTargetStack.startActivityLocked(mStartActivity, topFocused, newTask, mKeepCurTransition, mOptions);
+  if (mDoResume) {
+    ...
+    mSupervisor.resumeFocusedStackTopActivityLocked(mTargetStack, mStartActivity, mOptions);
+    ...
+  }
+  ...
+}</code></pre><p>执行ActivitStackSupervisor的resumeFocusedStackTopActivityLocked()方法；</p>
+<pre><code>boolean resumeFocusedStackTopActivityLocked(ActivityStack targetStack, ActivityRecord target, ActivityOptions targetOptions) {
+  ...
+  final ActivityRecord r = mFocusedStack.topRunningActivityLocked();
+  if (r == null || !r.isState(RESUMED)) {
+    mFocusedStack.resumeTopActivityUncheckedLocked(null, null);
+  } else if (r.isState(RESUMED)) {
+    // Kick off any lingering app transitions form the MoveTaskToFront operation.
+    mFocusedStack.executeAppTransition(targetOptions);
+  }
+  return false;
+}</code></pre><p>继续执行ActivityStack的resumeTopActivityUncheckedLocked()方法；</p>
+<pre><code>@GuardedBy(&quot;mService&quot;)
+boolean resumeTopActivityUncheckedLocked(ActivityRecord prev, ActivityOptions options) {
+  ...
+  try {
+    // Protect against recursion.
+    mStackSupervisor.inResumeTopActivity = true;
+    result = resumeTopActivityInnerLocked(prev, options); 
+    ...
+  } finally {
+    mStackSupervisor.inResumeTopActivity = false;
+  }
+  return result;
+}</code></pre><h4 id="2-2-2、封装暂停Activity事务"><a href="#2-2-2、封装暂停Activity事务" class="headerlink" title="2.2.2、封装暂停Activity事务"></a>2.2.2、封装暂停Activity事务</h4><p>继续执行该类的resumeTopActivityInnerLocked()方法，该方法中通过ClientTransaction事务来处理，先通过事务来处理当前Activity的暂停，即LauncherApp，然后再去启动新的APP；</p>
+<pre><code>@GuardedBy(&quot;mService&quot;)
+private boolean resumeTopActivityInnerLocked(ActivityRecord prev, ActivityOptions options) {
+  ...
+  if (next.app != null &amp;&amp; next.app.thread != null) {
+    ...
+    synchronized(mWindowManager.getWindowManagerLock()) {
+      try {
+        final ClientTransaction transaction = ClientTransaction.obtain(next.app.thread, next.appToken); 
+        ...
+        if (next.newIntents != null) {
+          transaction.addCallback(NewIntentItem.obtain(next.newIntents, false /* andPause */));
+        }
+        ...
+        transaction.setLifecycleStateRequest(ResumeActivityItem.obtain(next.app.repProcState, mService.isNextTransitionForward()));
+        ...
+        transaction.setLifecycleStateRequest(ResumeActivityItem.obtain(next.app.repProcState, mService.isNextTransitionForward()));
+        mService.getLifecycleManager().scheduleTransaction(transaction);
+        ...
+      }
+    }
+    ...
+    // 执行启动新的Activity
+    mStackSupervisor.startSpecificActivityLocked(next, true, true);
+  }
+    ...
+  return true;
+}</code></pre><h4 id="2-2-3、暂停当前Activity"><a href="#2-2-3、暂停当前Activity" class="headerlink" title="2.2.3、暂停当前Activity"></a>2.2.3、暂停当前Activity</h4><p>先让当前的Activity停止，进入onPause状态，在执行startSpecificActivityLocked()方法启动新的Activity；</p>
+<p>这里通过AMS获取到ClientLifecycleManager对象，执行其scheduleTransaction()方法，去暂停当前Activity；</p>
+<pre><code>public class ActivityManagerService extends IActivityManager.Stub implements Watchdog.Monitor, BatteryStatsImpl.BatteryCallback {
+
+    private final ClientLifecycleManager mLifecycleManager;
+
+    ClientLifecycleManager getLifecycleManager() {
+        return mLifecycleManager;
+    }
+}</code></pre><p>执行ClientLifecycleManager类的scheduleTransaction()方法，在该方法中执行ClientTransaction对象的schedule()方法；</p>
+<pre><code>class ClientLifecycleManager {
+  void scheduleTransaction(ClientTransaction transaction) throws RemoteException {
+    final IApplicationThread client = transaction.getClient();
+    transaction.schedule();
+    if (!(client instanceof Binder)) {
+      // the transaction is executed on client in ActivityThread.
+      transaction.recycle();
+    }
+  } 
+}</code></pre><p>ClientTransaction类的schedule()方法中，利用传过来的IApplicationThread对象去执行scheduleTransaction()，该IApplicationThread对象就是当前App的ApplicationThread对象，即LauncherApp的；</p>
+<pre><code>public class ClientTransaction implements Parcelable, ObjectPoolItem {
+  public void schedule() throws RemoteException {
+    mClient.scheduleTransaction(this);
+  }
+}</code></pre><p>mClient对象是IApplicationTread对象，IApplicationThread为aidl文件，对应ActivityThread类的内部类ApplicationThread对象；</p>
+<pre><code>public final class ActivityThread extends ClientTransactionHandler {
+  private class ApplicationThread extends IApplicationThread.Stub {
+    @Override
+    public void scheduleTransaction(ClientTransaction transaction) throws RemoteException {
+      ActivityThread.this.scheduleTransaction(transaction);
+    }
+  }
+}</code></pre><h4 id="2-2-4、向主线程发消息暂停Activity"><a href="#2-2-4、向主线程发消息暂停Activity" class="headerlink" title="2.2.4、向主线程发消息暂停Activity"></a>2.2.4、向主线程发消息暂停Activity</h4><p>ActivityThread继承自ClientTransactionHandler类，所以执行该类的scheduleTransaction()方法；</p>
+<pre><code>public abstract class ClientTransactionHandler {
+  void scheduleTransaction(ClientTransaction transaction) {
+    transaction.preExecute(this);
+    sendMessage(ActivityThread.H.EXECUTE_TRANSACTION, transaction);
+  }
+}</code></pre><p>该类的sendMessage()为抽象方法，由具体实现类实现，即ActivityThread，消息的what为ActivityThread.H.EXECUTE_TRANSACTION；</p>
+<pre><code>void sendMessage(int what, Object obj) {
+  sendMessage(what, obj, 0, 0, false);
+}
+
+private void sendMessage(int what, Object obj, int arg1, int arg2, boolean async) {
+  Message msg = Message.obtain();
+  msg.what = what;
+  msg.obj = obj;
+  msg.arg1 = arg1;
+  msg.arg2 = arg2;
+  if (async) {
+    msg.setAsynchronous(true);
+  }
+  mH.sendMessage(msg);
+}</code></pre><p>mH为ActivityThread的H类，继承自Handler，收到消息之后在主线程执行TransactionExecutor对象的execute()方法，执行的逻辑封装在ClientTransaction事务中；</p>
+<pre><code>class H extends Handler {
+  public void handleMessage(Message msg) {
+    switch (msg.what) {
+      case EXECUTE_TRANSACTION:
+        final ClientTransaction transaction = (ClientTransaction) msg.obj;
+        mTransactionExecutor.execute(transaction);
+        if (isSystem()) {
+          // Client transactions inside system process are recycled on the client side
+          // instead of ClientLifecycleManager to avoid being cleared before this
+          // message is handled.
+          transaction.recycle();
+        }
+        // TODO(lifecycler): Recycle locally scheduled transactions.
+        break;
+    }
+  }
+}</code></pre><p>在TransactionExecutor的execute()方法中，执行ClientTransaction事务中封装的callback对象和LifecycleState对象；</p>
+<pre><code>public class TransactionExecutor {
+  public void execute(ClientTransaction transaction) {
+    final IBinder token = transaction.getActivityToken();
+    ...
+    executeCallbacks(transaction);
+    executeLifecycleState(transaction);
+    mPendingActions.clear();
+    log(&quot;End resolving transaction&quot;);
+  }
+}</code></pre><p>事务对象是在2.2.2的ActivityStack类的resumeTopActivityInnerLocked()方法中封装的，这里callback对象为空，直接执行executeLifecycleState()方法，其中的transaction对象是在ActivityStack类的resumeTopActivityInnerLocked()方法中添加的；</p>
+<p>取出transaction对象中添加的ActivityLifecycleItem对象，其中ActivityLifecycleItem对象实际是NewIntentItem对象；</p>
+<pre><code>private void executeLifecycleState(ClientTransaction transaction) {
+  final ActivityLifecycleItem lifecycleItem = transaction.getLifecycleStateRequest();
+  ...
+  final IBinder token = transaction.getActivityToken();
+  final ActivityClientRecord r = mTransactionHandler.getActivityClient(token);
+  ...
+  // Cycle to the state right before the final requested state.
+  cycleToPath(r, lifecycleItem.getTargetState(), true /* excludeLastState */);
+  // Execute the final transition with proper parameters.
+  lifecycleItem.execute(mTransactionHandler, token, mPendingActions);
+  lifecycleItem.postExecute(mTransactionHandler, token, mPendingActions);
+}</code></pre><p>继续执行NewIntentItem类的execute()方法；</p>
+<pre><code>public class NewIntentItem extends ClientTransactionItem {
+  @Override
+  public void execute(ClientTransactionHandler client, IBinder token, PendingTransactionActions pendingActions) {
+    Trace.traceBegin(Trace.TRACE_TAG_ACTIVITY_MANAGER, &quot;activityNewIntent&quot;);
+    client.handleNewIntent(token, mIntents, mPause);
+    Trace.traceEnd(Trace.TRACE_TAG_ACTIVITY_MANAGER);
+  } 
+}</code></pre><h4 id="2-2-5、主线程暂停Activity"><a href="#2-2-5、主线程暂停Activity" class="headerlink" title="2.2.5、主线程暂停Activity"></a>2.2.5、主线程暂停Activity</h4><p>其中，client对象为ClientTransactionHandler对象，ActivityThread继承自ClientTransactionHandler类，在ActivityThread类中通过ClientTransactionHandler的构造方法，传入ActivityThread自身构建；</p>
+<pre><code>@Override
+public void handleNewIntent(IBinder token, List&lt;ReferrerIntent&gt; intents, boolean andPause) {
+  performNewIntents(token, intents, andPause);
+}
+
+void performNewIntents(IBinder token, List&lt;ReferrerIntent&gt; intents, boolean andPause) {
+  final ActivityClientRecord r = mActivities.get(token);
+  ...
+  final boolean resumed = !r.paused;
+  if (resumed) {
+    r.activity.mTemporaryPause = true;
+    mInstrumentation.callActivityOnPause(r.activity);
+  }
+  checkAndBlockForNetworkAccess();
+  deliverNewIntents(r, intents);
+  if (resumed) {
+    r.activity.performResume(false, &quot;performNewIntents&quot;);
+    r.activity.mTemporaryPause = false;
+  }
+  // andPause == false，在传入NewIntentItem时定义
+  if (r.paused &amp;&amp; andPause) {
+    // In this case the activity was in the paused state when we delivered the intent,
+    // to guarantee onResume gets called after onNewIntent we temporarily resume the
+    // activity and pause again as the caller wanted.
+    performResumeActivity(token, false, &quot;performNewIntents&quot;);
+    performPauseActivityIfNeeded(r, &quot;performNewIntents&quot;);
+  }
+}</code></pre><p>执行Instrumentation类的callActivityOnPause()方法，</p>
+<pre><code>public void callActivityOnPause(Activity activity) {
+  activity.performPause();
+}</code></pre><p>继续调用Activity的performPause()方法</p>
+<pre><code>final void performPause() {
+  mDoReportFullyDrawn = false;
+  mFragments.dispatchPause();
+  mCalled = false;
+  onPause();
+  ...
+}</code></pre><p>继续执行onPause()方法，暂停，这里进入到了具体Activity的onPause()生命周期方法中，在onPause()方法返回前，新的Activity不会创建，所以在onPause()方法里不要做耗时操作，可以在这里保存状态，关闭动画、耗时操作等；</p>
+<h4 id="2-2-6、启动新Activity"><a href="#2-2-6、启动新Activity" class="headerlink" title="2.2.6、启动新Activity"></a>2.2.6、启动新Activity</h4><p>然后继续执行ActivityStack类的resumeTopActivityInnerLocked()方法中的启动新的Activity流程，ActivityStack的resumeTopActivityInnerLocked()方法，通过AMS去执行启动新进程方法；</p>
+<pre><code>void startSpecificActivityLocked(ActivityRecord r, boolean andResume, boolean checkConfig) {
+  ...
+  mService.startProcessLocked(r.processName, r.info.applicationInfo, true, 0, &quot;activity&quot;, r.intent.getComponent(), false, false, true);
+}</code></pre><p>AMS调用两次重载方法；</p>
+<pre><code>@GuardedBy(&quot;this&quot;)
+final ProcessRecord startProcessLocked(String processName, ApplicationInfo info,
+                                       boolean knownToBeDead, int intentFlags, 
+                                       String hostingType, ComponentName hostingName,
+                                       boolean allowWhileBooting, boolean isolated, 
+                                       int isolatedUid, boolean keepIfLarge,
+                                       String abiOverride, String entryPoint, 
+                                       String[] entryPointArgs, Runnable crashHandler) {
+  ...
+  final boolean success = startProcessLocked(app, hostingType, hostingNameStr, abiOverride);
+  ...
+  return success ? app : null;
+}</code></pre><p>继续调用startProcessLocked重载方法；</p>
+<pre><code>@GuardedBy(&quot;this&quot;)
+private final boolean startProcessLocked(ProcessRecord app, String hostingType,
+                                         String hostingNameStr, boolean disableHiddenApiChecks, 
+                                         String abiOverride) {
+  ...
+  // 这个参数重要，后文会用到，传入ActivityThread类名
+  final String entryPoint = &quot;android.app.ActivityThread&quot;;
+  return startProcessLocked(hostingType, hostingNameStr, entryPoint, app, uid, gids, 
+                            runtimeFlags, mountExternal, seInfo, requiredAbi, instructionSet, 
+                            invokeWith, startTime);
+  ...
+}
+
+@GuardedBy(&quot;this&quot;)
+private boolean startProcessLocked(String hostingType, String hostingNameStr, 
+                                   String entryPoint, ProcessRecord app, int uid, int[] gids, 
+                                   int runtimeFlags, int mountExternal, String seInfo, 
+                                   String requiredAbi, String instructionSet, 
+                                   String invokeWith, long startTime) {
+  ...
+  if (mConstants.FLAG_PROCESS_START_ASYNC) {
+    ...
+    final ProcessStartResult startResult = startProcess(app.hostingType, entryPoint, app, 
+                                                        app.startUid, gids, runtimeFlags, 
+                                                        mountExternal, app.seInfo, requiredAbi, 
+                                                        instructionSet, invokeWith, 
+                                                        app.startTime);
+    ...
+  }
+}</code></pre><p>在该方法中执行startProcess()方法；</p>
+<pre><code>private ProcessStartResult startProcess(String hostingType, String entryPoint, 
+                                        ProcessRecord app, int uid, int[] gids, 
+                                        int runtimeFlags, int mountExternal, String seInfo, 
+                                        String requiredAbi, String instructionSet, 
+                                        String invokeWith, long startTime) {
+  try {
+    ...
+    if (hostingType.equals(&quot;webview_service&quot;)) {
+      ...
+    } else {
+        startResult = Process.start(entryPoint, app.processName, uid, uid, gids, runtimeFlags,
+                                  mountExternal, app.info.targetSdkVersion, seInfo, 
+                                  requiredAbi, instructionSet, app.info.dataDir, invokeWith,
+                                  new String[] {PROC_START_SEQ_IDENT + app.startSeq});
+    }
+    ...
+  }
+}</code></pre><h4 id="2-2-7、与Zygote进程建立Socket通信"><a href="#2-2-7、与Zygote进程建立Socket通信" class="headerlink" title="2.2.7、与Zygote进程建立Socket通信"></a>2.2.7、与Zygote进程建立Socket通信</h4><p>执行Process类的start()方法，调用ZygoteProcess类的start()方法，ZygoteProcess类对象是Process类的一个静态对象，其中参数传入ZYGOTE_SOCKET，即socket通信时连接的地址；</p>
+<pre><code>public static final String ZYGOTE_SOCKET = &quot;zygote&quot;;
+public static final String SECONDARY_ZYGOTE_SOCKET = &quot;zygote_secondary&quot;;
+public static final ZygoteProcess zygoteProcess = new ZygoteProcess(ZYGOTE_SOCKET, SECONDARY_ZYGOTE_SOCKET);
+
+public static final ProcessStartResult start(final String processClass, final String niceName, 
+                                             int uid, int gid, int[] gids, int runtimeFlags, 
+                                             int mountExternal, int targetSdkVersion, 
+                                             String seInfo, String abi, String instructionSet, 
+                                             String appDataDir, String invokeWith, 
+                                             String[] zygoteArgs) {
+  return zygoteProcess.start(processClass, niceName, uid, gid, gids, runtimeFlags, 
+                             mountExternal, targetSdkVersion, seInfo, abi, instructionSet, 
+                             appDataDir, invokeWith, zygoteArgs);
+}</code></pre><p>ZygoteProcess类的start()方法里面又执行startViaZygote()方法，这里倒数第二个参数固定传入false，表示不是启动子Zygote进程，而是启动一个新的进程；</p>
+<pre><code>public final Process.ProcessStartResult start(final String processClass, final String niceName, 
+                                              int uid, int gid, int[] gids, int runtimeFlags, 
+                                              int mountExternal, int targetSdkVersion, 
+                                              String seInfo, String abi, String instructionSet, 
+                                              String appDataDir, String invokeWith, 
+                                              String[] zygoteArgs) {
+  try {
+    return startViaZygote(processClass, niceName, uid, gid, gids, runtimeFlags, mountExternal, 
+                          targetSdkVersion, seInfo, abi, instructionSet, appDataDir, 
+                          invokeWith, false /* startChildZygote */, zygoteArgs);
+  } catch (ZygoteStartFailedEx ex) {
+    ...
+  }
+}</code></pre><p>在startViaZygote()方法中，主要是new出一个String类型的List集合，用于保存启动新进程的相关参数，例如进程名，uid等信息，然后调用zygoteSendArgsAndGetResult()方法；</p>
+<pre><code>private Process.ProcessStartResult startViaZygote(final String processClass, 
+                                                  final String niceName, final int uid, 
+                                                  final int gid, final int[] gids, 
+                                                  int runtimeFlags, int mountExternal, 
+                                                  int targetSdkVersion, String seInfo, 
+                                                  String abi, String instructionSet, 
+                                                  String appDataDir, String invokeWith, 
+                                                  boolean startChildZygote, String[] extraArgs) throws ZygoteStartFailedEx {
+  ArrayList&lt;String&gt; argsForZygote = new ArrayList&lt;String&gt;();
+  ...
+  if (niceName != null) {
+    argsForZygote.add(&quot;--nice-name=&quot; + niceName);
+  }
+  ...
+  argsForZygote.add(processClass);
+  synchronized(mLock) {
+    return zygoteSendArgsAndGetResult(openZygoteSocketIfNeeded(abi), argsForZygote);
+  }
+}</code></pre><p>在zygoteSendArgsAndGetResult()方法中会传入一个参数，第一个参数为一个ZygoteState对象，通过openZygoteSocketIfNeeded()方法获得，通过注释可知这个方法用来向Zygote进程开启socket，这里也说明了system_server进程和Zygote进程之间的IPC方式为socket通信；</p>
+<p>方法中会去判断socket是否已经打开，有32位和64位zygote进程，并通过abi参数去匹配32位还是64位，其中在连接时，参数mSocket就是连接的地址，这个在Process中的静态对象ZygoteProcess中初始化，即zygote进程；</p>
+<p>Zygote进程在启动时，Init.rc脚本中ro.zygote有四种支持的属性，由硬件决定，这里会获取主模式和第二种模式，即64位和32位，去匹配是否支持；</p>
+<pre><code>/**
+ * Tries to open socket to Zygote process if not already open. If
+ * already open, does nothing.  May block and retry.  Requires that mLock be held.
+ */
+@GuardedBy(&quot;mLock&quot;)
+private ZygoteState openZygoteSocketIfNeeded(String abi) throws ZygoteStartFailedEx {
+  Preconditions.checkState(Thread.holdsLock(mLock), &quot;ZygoteProcess lock not held&quot;);
+  if (primaryZygoteState == null || primaryZygoteState.isClosed()) {
+    ... 
+    try {
+      primaryZygoteState = ZygoteState.connect(mSocket);
+    }
+  }
+  if (primaryZygoteState.matches(abi)) {
+    return primaryZygoteState;
+  }
+  // The primary zygote didn&apos;t match. Try the secondary.
+  if (secondaryZygoteState == null || secondaryZygoteState.isClosed()) {
+    ...
+    try {
+      secondaryZygoteState = ZygoteState.connect(mSecondarySocket);
+    }
+  }
+  if (secondaryZygoteState.matches(abi)) {
+    return secondaryZygoteState;
+  }
+  throw new ZygoteStartFailedEx(&quot;Unsupported zygote ABI: &quot; + abi);
+}</code></pre><p>此时已经与Zygote进程通过socket建立了通讯；</p>
+<h4 id="2-2-8、向Zygote进程发起创建进程请求"><a href="#2-2-8、向Zygote进程发起创建进程请求" class="headerlink" title="2.2.8、向Zygote进程发起创建进程请求"></a>2.2.8、向Zygote进程发起创建进程请求</h4><p>在zygoteSendArgsAndGetResult()方法中，将相关参数通过socket传入Zygote进程，</p>
+<p>然后新建ProcessStartResult对象，通过流将Zygote执行的结果存入到该对象中，pid等；</p>
+<pre><code>@GuardedBy(&quot;mLock&quot;)
+private static Process.ProcessStartResult zygoteSendArgsAndGetResult(ZygoteState zygoteState, ArrayList&lt;String&gt; args) throws ZygoteStartFailedEx {
+  try {
+    ...
+    final BufferedWriter writer = zygoteState.writer;
+    final DataInputStream inputStream = zygoteState.inputStream;
+    writer.write(Integer.toString(args.size()));
+    writer.newLine();
+    for (int i = 0; i &lt; sz; i++) {
+      String arg = args.get(i);
+      writer.write(arg);
+      writer.newLine();
+    }
+    writer.flush();
+    // Should there be a timeout on this?
+    Process.ProcessStartResult result = new Process.ProcessStartResult();
+    result.pid = inputStream.readInt();
+    result.usingWrapper = inputStream.readBoolean();
+    ...
+    return result;
+  } catch (IOException ex) {
+    zygoteState.close();
+    throw new ZygoteStartFailedEx(ex);
+  }
+}</code></pre><h3 id="2-3、Zygote进程阶段"><a href="#2-3、Zygote进程阶段" class="headerlink" title="2.3、Zygote进程阶段"></a>2.3、Zygote进程阶段</h3><p>在Zygote进程启动时，会建立Socket的Server端，进入轮询等待客户端接入，此时AMS作为Socket的客户端与Zygote进程建立连接并发送请求，Zygote进程收到客户端的新建进程请求去执行；</p>
+<p>执行fork进程请求，详见“<a href="https://jesusyoung.github.io/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" target="_blank" rel="noopener">Zygote进程启动</a>”；</p>
+<p>此时进入到Zygote进程中去执行创建新的APP进程操作；</p>
+<h4 id="2-3-1、Zygote进程fork新的子进程"><a href="#2-3-1、Zygote进程fork新的子进程" class="headerlink" title="2.3.1、Zygote进程fork新的子进程"></a>2.3.1、Zygote进程fork新的子进程</h4><p>此时进入到Zygote进程中去执行fork新进程操作，Zygote进程收到AMS的fork子进程请求，会执行ZygoteConnection类的processOneCommand()方法，其中执行Zygote类的forkAndSpecialize()方法fork出子进程，然后调用handleChildProc()方法，其中forkAndSpecialize()方法中调用了native方法nativeForkAndSpecialize()去执行；</p>
+<p>先看forkAndSpecialize()方法；</p>
+<p>该native方法的实现是在com_android_internal_os_Zygote.cpp类中实现的，实现方法如下：</p>
+<pre><code>static jint com_android_internal_os_Zygote_nativeForkSystemServer( JNIEnv* env, jclass, 
+                                                                  uid_t uid, gid_t gid, 
+                                                                  jintArray gids, 
+                                                                  jint runtime_flags,
+                                                                  jobjectArray rlimits, 
+                                                                  jlong permittedCapabilities,
+                                                                  jlong effectiveCapabilities) {
+  pid_t pid = ForkAndSpecializeCommon(env, uid, gid, gids, runtime_flags, rlimits, 
+                                      permittedCapabilities, effectiveCapabilities, 
+                                      MOUNT_EXTERNAL_DEFAULT, NULL, NULL, true, NULL, NULL, 
+                                      false, NULL, NULL);</code></pre><p>继续执行该类的ForkAndSpecializeCommon()方法，执行fork()方法，fork出新进程即APP进程，返回pid，pid等于0时表示子进程，此时在APP进程中执行PreApplicationInit()方法，通过JNI去调用Zygote类的CallStaticVoidMethod()方法；</p>
+<pre><code>// Utility routine to fork zygote and specialize the child process.
+static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids, 
+                                     jint runtime_flags, jobjectArray javaRlimits, 
+                                     jlong permittedCapabilities, jlong effectiveCapabilities, 
+                                     jint mount_external, jstring java_se_info, 
+                                     jstring java_se_name, bool is_system_server, 
+                                     jintArray fdsToClose, jintArray fdsToIgnore, 
+                                     bool is_child_zygote, jstring instructionSet, 
+                                     jstring dataDir) {
+  ...
+  pid_t pid = fork();
+  if (pid == 0) {
+    // 子进程，即fork出来的app进程
+    PreApplicationInit();
+    ...
+    // 反射调用Zygote类的callPostForkChildHooks()方法
+    env-&gt;CallStaticVoidMethod(gZygoteClass, gCallPostForkChildHooks, runtime_flags, 
+                              is_system_server, is_child_zygote, instructionSet);
+  } else {
+    // 父进程
+  }
+}</code></pre><p>进入子进程分支，在PreApplicationInit()方法中，子进程设置标识自己不是zygote进程；</p>
+<pre><code>static void PreApplicationInit() {
+  // The child process sets this to indicate it&apos;s not the zygote.
+  gMallocLeakZygoteChild = 1;
+  // Set the jemalloc decay time to 1.
+  mallopt(M_DECAY_TIME, 1);
+}</code></pre><p>继续通过JNI调用Zygote类的CallStaticVoidMethod()方法做一些初始化操作；</p>
+<h4 id="2-3-2、向APP进程发起创建Application"><a href="#2-3-2、向APP进程发起创建Application" class="headerlink" title="2.3.2、向APP进程发起创建Application"></a>2.3.2、向APP进程发起创建Application</h4><p>接下来继续走fork完子进程之后的操作，即ZygoteConnection类的handleChildProc()方法；</p>
+<pre><code>private Runnable handleChildProc(Arguments parsedArgs, FileDescriptor[] descriptors, FileDescriptor pipeFd, boolean isZygote) {
+  ...
+  if (!isZygote) {
+    return ZygoteInit.zygoteInit(parsedArgs.targetSdkVersion, parsedArgs.remainingArgs, null /* classLoader */);
+  } else {
+    ...
+  }
+}</code></pre><p>继续执行ZygoteInit的childZygoteInit()方法，最后调用RuntimeInit类的applicationInit()方法去创建APP进程的Application；</p>
+<pre><code>public static final Runnable zygoteInit(int targetSdkVersion, String[] argv, ClassLoader classLoader) {
+  ...
+  RuntimeInit.commonInit();
+  ZygoteInit.nativeZygoteInit();
+  return RuntimeInit.applicationInit(targetSdkVersion, argv, classLoader);
+}</code></pre><p>执行RuntimeInit的applicationInit()方法，解析参数，调用findStaticMain()方法；</p>
+<pre><code>protected static Runnable applicationInit(int targetSdkVersion, String[] argv, ClassLoader classLoader) {
+  ...
+  final Arguments args = new Arguments(argv);
+  ...
+  return findStaticMain(args.startClass, args.startArgs, classLoader);
+}</code></pre><p>在findStaticMain()方法中，反射找到对应的类、方法，并将参数等信息统一交给MethodAndArgsCaller类对象去处理，类名为前面2.2.6中startProcessLocked方法中，AMS与Zygote进程交互的时候传入的ActivityThread类名，找对对应的方法为main()方法，MethodAndArgsCaller类是一个Runnable对象，其run()方法中执行了反射找到的方法，即ActivityThread的main()方法，由此进入到ActivityThread类，即进入了新进程APP的主线程；</p>
+<pre><code>protected static Runnable findStaticMain(String className, String[] argv, ClassLoader classLoader) {
+  Class&lt;?&gt; cl;
+  try {
+    cl = Class.forName(className, true, classLoader);
+  }
+  ...
+  Method m;
+  try {
+    m = cl.getMethod(&quot;main&quot;, new Class[] { String[].class });
+  }
+  ...
+  int modifiers = m.getModifiers();
+  return new MethodAndArgsCaller(m, argv);
+}</code></pre><h3 id="2-4、APP进程阶段"><a href="#2-4、APP进程阶段" class="headerlink" title="2.4、APP进程阶段"></a>2.4、APP进程阶段</h3><p>Zygote进程fork出APP进程之后，进入到APP进程中，即ActivityThread，执行其main()方法，创建主线程的Looper，并轮询等待消息，这里的Looper由系统创建，所以平时在主线程中使用Handler时不需要手动创建Looper；</p>
+<pre><code>public static void main(String[] args) {
+  ...
+  // 为当前用户初始化环境
+  Environment.initForCurrentUser();
+  ...
+  Process.setArgV0(&quot;&lt;pre-initialized&gt;&quot;);
+  // 初始化主线程，UI线程
+  Looper.prepareMainLooper();
+  ...
+  // 创建ActivityThread对象，并调用其attach()方法，第二个参数为false，表示非系统进程
+  ActivityThread thread = new ActivityThread();
+  thread.attach(false, startSeq);
+  if (sMainThreadHandler == null) {
+    sMainThreadHandler = thread.getHandler();
+  }
+  ...
+  // 进入主线程looper轮询
+  Looper.loop();
+  throw new RuntimeException(&quot;Main thread loop unexpectedly exited&quot;);
+}</code></pre><h4 id="2-4-1、向AMS发起attachApplication请求"><a href="#2-4-1、向AMS发起attachApplication请求" class="headerlink" title="2.4.1、向AMS发起attachApplication请求"></a>2.4.1、向AMS发起attachApplication请求</h4><p>在ActivityThread的main()方法中，创建ActivityTread对象，并调用其attach()方法，第一个参数传入false，表示该进程非系统进程；</p>
+<p>在attach()方法中通过ActivityManager.getService()获取到系统进程中AMS在APP进程中的代理对象，通过AMS的代理对象，向系统进程（即AMS所在的system_server进程）发起attachApplication请求；</p>
+<pre><code>private void attach(boolean system, long startSeq) {
+  sCurrentActivityThread = this;
+  mSystemThread = system;
+  if (!system) {
+    ... // dalvik虚拟机相关设置
+    android.ddm.DdmHandleAppName.setAppName(&quot;&lt;pre-initialized&gt;&quot;, UserHandle.myUserId());
+    RuntimeInit.setApplicationObject(mAppThread.asBinder());
+    // 获取ActivityManager的Binder对象，即系统进程在APP进程中的AMS代理
+    final IActivityManager mgr = ActivityManager.getService();
+    try {
+      // 通过AMS代理对象向系统进程发起attachApplication请求
+      mgr.attachApplication(mAppThread, startSeq);
+    } catch (RemoteException ex) {
+      throw ex.rethrowFromSystemServer();
+    }
+    ... 
+  } else {
+    ... // 系统进程分支
+  }
+  ...
+}</code></pre><h3 id="2-5、system-server进程阶段"><a href="#2-5、system-server进程阶段" class="headerlink" title="2.5、system_server进程阶段"></a>2.5、system_server进程阶段</h3><p>此时APP进程挂起，进入到AMS所在的系统进程system_server进程，执行AMS的attachApplication()方法；</p>
+<h4 id="2-5-1、创建APP进程的Application"><a href="#2-5-1、创建APP进程的Application" class="headerlink" title="2.5.1、创建APP进程的Application"></a>2.5.1、创建APP进程的Application</h4><p>获取到当前调用的进程Pid和Uid，然后重置当前进程上的IPC标识，调用attachApplicationLocked()方法，之后再回复调用该方法之前的进程上的IPC标识；</p>
+<pre><code>@Override
+public final void attachApplication(IApplicationThread thread, long startSeq) {
+  synchronized (this) {
+    int callingPid = Binder.getCallingPid();
+    final int callingUid = Binder.getCallingUid();
+    final long origId = Binder.clearCallingIdentity();
+    attachApplicationLocked(thread, callingPid, callingUid, startSeq);
+    Binder.restoreCallingIdentity(origId);
+  }
+}</code></pre><p>继续执行AMS中的attachApplicationLocked()方法，在该方法中先去创建Application，并回调其生命周期方法onCreate()方法，接着会去调用StackSupervisor类的attachApplicationLocked()方法启动新的Activity，先看创建Application；</p>
+<pre><code>@GuardedBy(&quot;this&quot;)
+private final boolean attachApplicationLocked(IApplicationThread thread, int pid, int callingUid, long startSeq) {
+  try {
+    if (app.isolatedEntryPoint != null) {
+      // This is an isolated process which should just call an entry point instead of
+      // being bound to an application.
+      thread.runIsolatedEntryPoint(app.isolatedEntryPoint, app.isolatedEntryPointArgs);
+    } else if (app.instr != null) {
+      thread.bindApplication(processName, appInfo, providers, app.instr.mClass, 
+                             profilerInfo, app.instr.mArguments, app.instr.mWatcher, 
+                             app.instr.mUiAutomationConnection, testMode, 
+                             mBinderTransactionTrackingEnabled, enableTrackAllocation, 
+                             isRestrictedBackupMode || !normalMode, app.persistent, 
+                             new Configuration(getGlobalConfiguration()), app.compat, 
+                             getCommonServicesLocked(app.isolated), 
+                             mCoreSettingsObserver.getCoreSettingsLocked(), buildSerial, 
+                             isAutofillCompatEnabled); 
+    } else {
+      thread.bindApplication(processName, appInfo, providers, null, profilerInfo, null, null, 
+                             null, testMode, mBinderTransactionTrackingEnabled, 
+                             enableTrackAllocation, isRestrictedBackupMode || !normalMode, 
+                             app.persistent, new Configuration(getGlobalConfiguration()), 
+                             app.compat, getCommonServicesLocked(app.isolated), 
+                             mCoreSettingsObserver.getCoreSettingsLocked(), buildSerial, 
+                             isAutofillCompatEnabled);
+    }
+    } catch (Exception e) {
+    ...
+  }
+  // See if the top visible activity is waiting to run in this process...
+  if (normalMode) {
+    try {
+      if (mStackSupervisor.attachApplicationLocked(app)) {
+        didSomething = true;
+      }
+    } catch (Exception e) {
+      ...
+    }
+  }
+}</code></pre><h4 id="2-5-2、向主线程发送消息"><a href="#2-5-2、向主线程发送消息" class="headerlink" title="2.5.2、向主线程发送消息"></a>2.5.2、向主线程发送消息</h4><p>继续执行ActivityThread的bindApplication()方法，保存AppBindData信息，向主线程发送消息，由于AMS的创建Application操作在Binder池中执行，所以通过Handler消息机制向AMS的主线程发送消息；</p>
+<pre><code>public final void bindApplication(String processName, ApplicationInfo appInfo, 
+                                  List&lt;ProviderInfo&gt; providers, 
+                                  ComponentName instrumentationName, ProfilerInfo profilerInfo, 
+                                  Bundle instrumentationArgs, 
+                                  IInstrumentationWatcher instrumentationWatcher, 
+                                  IUiAutomationConnection instrumentationUiConnection, 
+                                  int debugMode, boolean enableBinderTracking, 
+                                  boolean trackAllocation, boolean isRestrictedBackupMode, 
+                                  boolean persistent, Configuration config,
+                                  CompatibilityInfo compatInfo, Map services, 
+                                  Bundle coreSettings, String buildSerial, 
+                                  boolean autofillCompatibilityEnabled) {
+  ...
+  AppBindData data = new AppBindData();
+  data.processName = processName;
+  data.appInfo = appInfo;
+  ...
+  sendMessage(H.BIND_APPLICATION, data);
+}</code></pre><p>主线程收到消息，在主线程中的Handler即H类去处理该消息，执行handleBindApplication()方法；</p>
+<pre><code>class H extends Handler {
+  public void handleMessage(Message msg) {
+    case BIND_APPLICATION:
+        ...
+        AppBindData data = (AppBindData)msg.obj;
+        handleBindApplication(data);
+        ...
+        break;
+  }
+  ...
+}</code></pre><h4 id="2-5-3、执行Application的生命周期方法"><a href="#2-5-3、执行Application的生命周期方法" class="headerlink" title="2.5.3、执行Application的生命周期方法"></a>2.5.3、执行Application的生命周期方法</h4><p>执行handleBindApplication()方法，在该方法中通过Instrumention类去执行Application的onCreate()方法；</p>
+<pre><code>private void handleBindApplication(AppBindData data) {
+  // Register the UI Thread as a sensitive thread to the runtime.
+  VMRuntime.registerSensitiveThread();
+  ...
+  VMRuntime.setProcessPackageName(data.appInfo.packageName);
+  ...
+  final ContextImpl appContext = ContextImpl.createAppContext(this, data.info);
+  updateLocaleListFromAppContext(appContext, mResourcesManager.getConfiguration().getLocales());
+  ...
+  Application app;
+  try {
+    app = data.info.makeApplication(data.restrictedBackupMode, null);
+    ...
+    try {
+      // 在Instrumention类中onCreate()方法为空实现
+      mInstrumentation.onCreate(data.instrumentationArgs);
+    }
+    try {
+      // 执行Application的onCreate()方法
+      mInstrumentation.callApplicationOnCreate(app);
+    }
+    ...
+  }
+  ...
+}</code></pre><p>Instrumentation类的callApplicationOnCreate()方法，在该方法中去调用Application类的onCreate()方法，此时已经执行到新建APP的Application的onCreate()方法中；</p>
+<pre><code>public void callApplicationOnCreate(Application app) {
+  app.onCreate();
+}</code></pre><h4 id="2-5-4、启动Activity"><a href="#2-5-4、启动Activity" class="headerlink" title="2.5.4、启动Activity"></a>2.5.4、启动Activity</h4><p>Application创建完成，接着继续走2.5.1之后的启动Activity的流程，执行AMS中的attachApplicationLocked()方法，获取相关Task、Stack、包信息等，调用realStartActivityLocked()方法来启动Activity；</p>
+<pre><code>boolean attachApplicationLocked(ProcessRecord app) throws RemoteException {
+  final String processName = app.processName;
+  boolean didSomething = false;
+  // 遍历所有的stack，找到处于前台的ActivityStack
+  for (int displayNdx = mActivityDisplays.size() - 1; displayNdx &gt;= 0; --displayNdx) {
+    final ActivityDisplay display = mActivityDisplays.valueAt(displayNdx);
+    for (int stackNdx = display.getChildCount() - 1; stackNdx &gt;= 0; --stackNdx) {
+      final ActivityStack stack = display.getChildAt(stackNdx);
+      if (!isFocusedStack(stack)) {
+        continue;
+      }
+      // 找到处于栈顶的ActivityRecord
+      final ActivityRecord top = stack.topRunningActivityLocked();
+      for (int i = 0; i &lt; size; i++) {
+        final ActivityRecord activity = mTmpActivityList.get(i);
+        if (activity.app == null &amp;&amp; app.uid == activity.info.applicationInfo.uid &amp;&amp; processName.equals(activity.processName)) {
+          try {
+            // 调用realstartActivityLocked方法来启动目标Activity
+            if (realStartActivityLocked(activity, app, top == activity /* andResume */, true /* checkConfig */)) {
+              didSomething = true;
+            }
+          }
+        }
+      }
+    }
+  }
+}</code></pre><p>继续执行realStartActivityLocked()方法创建Activity，将新APP进程信息保存到app变量，获取对应的栈信息等，将创建Activity的逻辑封装到ClientTransaction事务中，并添加callback和LifecycleCallback回调，通过AMS获取LifecycleManager来执行；</p>
+<pre><code>final boolean realStartActivityLocked(ActivityRecord r, ProcessRecord app, boolean andResume, boolean checkConfig) throws RemoteException {
+  try {
+    // 将新进程的信息保存到ActivityRecord的app变量中
+    r.setProcess(app);
+    // 获取对应的栈信息等
+    ...
+    try {
+      final ClientTransaction clientTransaction = ClientTransaction.obtain(app.thread, r.appToken);
+      clientTransaction.addCallback(LaunchActivityItem.obtain(new Intent(r.intent), 
+          System.identityHashCode(r), r.info, 
+        // TODO: Have this take the merged configuration instead of separate global
+        // and override configs. 
+        mergedConfiguration.getGlobalConfiguration(),
+        mergedConfiguration.getOverrideConfiguration(), r.compat, r.launchedFromPackage, 
+        task.voiceInteractor, app.repProcState, r.icicle, r.persistentState, results, 
+        newIntents, mService.isNextTransitionForward(), profilerInfo));
+      // Set desired final state.
+      final ActivityLifecycleItem lifecycleItem;
+      if (andResume) {
+        lifecycleItem = ResumeActivityItem.obtain(mService.isNextTransitionForward());
+      }
+      clientTransaction.setLifecycleStateRequest(lifecycleItem);
+      // Schedule transaction.
+      mService.getLifecycleManager().scheduleTransaction(clientTransaction);
+    }
+  }
+}</code></pre><h4 id="2-5-5、通知APP进程创建Activity"><a href="#2-5-5、通知APP进程创建Activity" class="headerlink" title="2.5.5、通知APP进程创建Activity"></a>2.5.5、通知APP进程创建Activity</h4><p>这里通过ClientTransaction事务来执行，AMS的getLifecycleManager()获取ClientLifecycleManager对象，去执行其scheduleTransaction()方法；</p>
+<pre><code>public class ActivityManagerService {
+  ClientLifecycleManager getLifecycleManager() {
+    return mLifecycleManager;
+  }
+}</code></pre><p>ClientLifecycleManager的scheduleTransaction()方法；</p>
+<pre><code>void scheduleTransaction(ClientTransaction transaction) throws RemoteException {
+  final IApplicationThread client = transaction.getClient();
+  transaction.schedule();
+  ...
+}</code></pre><p>ClientTransaction类的schedule()方法，其中mClient对象为传过来的ApplicationThread对象，即通过Binder机制进入到APP进程所在进程去执行；</p>
+<pre><code>public void schedule() throws RemoteException {
+  mClient.scheduleTransaction(this);
+}</code></pre><h3 id="2-6、APP进程阶段"><a href="#2-6、APP进程阶段" class="headerlink" title="2.6、APP进程阶段"></a>2.6、APP进程阶段</h3><p>此时进入到APP进程的ApplicationThread中去执行；</p>
+<pre><code>private class ApplicationThread extends IApplicationThread.Stub {
+  @Override
+  public void scheduleTransaction(ClientTransaction transaction) throws RemoteException {
+    ActivityThread.this.scheduleTransaction(transaction);
+  }
+}</code></pre><h4 id="2-6-1、向主线程发消息执行创建Activity"><a href="#2-6-1、向主线程发消息执行创建Activity" class="headerlink" title="2.6.1、向主线程发消息执行创建Activity"></a>2.6.1、向主线程发消息执行创建Activity</h4><p>ActivityThread继承自ClientTransactionHandler类，向ActivityThread发送消息，执行TransactionExecutor类的execute()方法；</p>
+<pre><code>public void execute(ClientTransaction transaction) {
+  final IBinder token = transaction.getActivityToken();
+  executeCallbacks(transaction);
+  executeLifecycleState(transaction);
+}</code></pre><p>其中Callback为LaunchActivityItem对象，在executeCallbacks()方法中执行其execute()方法；</p>
+<pre><code>public class LaunchActivityItem extends ClientTransactionItem {
+  @Override
+  public void execute(ClientTransactionHandler client, IBinder token, PendingTransactionActions pendingActions) {
+    ActivityClientRecord r = new ActivityClientRecord(token, mIntent, mIdent, mInfo, 
+                                                      mOverrideConfig, mCompatInfo, mReferrer, 
+                                                      mVoiceInteractor, mState, 
+                                                      mPersistentState, mPendingResults, 
+                                                      mPendingNewIntents, mIsForward, 
+                                                      mProfilerInfo, client);
+    client.handleLaunchActivity(r, pendingActions, null /* customIntent */);
+  }
+}</code></pre><h4 id="2-6-2、主线程通过反射创建Activity"><a href="#2-6-2、主线程通过反射创建Activity" class="headerlink" title="2.6.2、主线程通过反射创建Activity"></a>2.6.2、主线程通过反射创建Activity</h4><p>其中client对象为当前的ActivityThread对象，所以执行其handleLaunchActivity()方法；</p>
+<pre><code>@Override
+public Activity handleLaunchActivity(ActivityClientRecord r, PendingTransactionActions pendingActions, Intent customIntent) {
+  ...
+  final Activity a = performLaunchActivity(r, customIntent);
+  ...
+  return a;
+}</code></pre><p>performLaunchActivity，在该方法中，获取packageInfo信息、Comment信息等，然后执行Instrumentation类的newActivity()方法来创建一个Activity，然后执行Activity的attach()方法，创建完成后再通过Instrumentation类来执行activity的onCreate()方法；</p>
+<pre><code>private Activity performLaunchActivity(ActivityClientRecord r, Intent customIntent) {
+  // 获取packageInfo信息
+  ActivityInfo aInfo = r.activityInfo;
+  if (r.packageInfo == null) {
+    r.packageInfo = getPackageInfo(aInfo.applicationInfo, r.compatInfo, Context.CONTEXT_INCLUDE_CODE);
+  }
+  ...
+  ContextImpl appContext = createBaseContextForActivity(r);
+  Activity activity = null;
+  try {
+    // 调用Instrumentation类来创建一个根据Activity的信息Activity对象
+    java.lang.ClassLoader cl = appContext.getClassLoader();
+    activity = mInstrumentation.newActivity(cl, component.getClassName(), r.intent);
+    StrictMode.incrementExpectedActivityCount(activity.getClass());
+    r.intent.setExtrasClassLoader(cl);
+    r.intent.prepareToEnterProcess();
+    if (r.state != null) {
+      r.state.setClassLoader(cl);
+    }
+  }
+  try {
+    ...
+      // 创建完成后，调用Activity的attach方法来初始化Activity
+    if (activity != null) {
+      activity.attach(appContext, this, getInstrumentation(), r.token, r.ident, app, r.intent, 
+                      r.activityInfo, title, r.parent, r.embeddedID, 
+                      r.lastNonConfigurationInstances, config, r.referrer, r.voiceInteractor, 
+                      window, r.configCallback);
+      ...
+      // 调用Activity的onCreate方法
+      if (r.isPersistable()) {
+        mInstrumentation.callActivityOnCreate(activity, r.state, r.persistentState);
+      } else {
+        mInstrumentation.callActivityOnCreate(activity, r.state);
+      }
+    }
+  }
+}</code></pre><p>创建Activity完成之后，调用其attach()方法；</p>
+<pre><code>public Activity newActivity(Class&lt;?&gt; clazz, Context context,  IBinder token, 
+                            Application application, Intent intent, ActivityInfo info,  
+                            CharSequence title, Activity parent, String id, 
+                            Object lastNonConfigurationInstance) throws InstantiationException, IllegalAccessException {
+  Activity activity = (Activity)clazz.newInstance();
+  ActivityThread aThread = null;
+  // Activity.attach expects a non-null Application Object.
+  if (application == null) {
+    application = new Application();
+  }
+  activity.attach(context, aThread, this, token, 0 /* ident */, application, intent, info, 
+                  title, parent, id, 
+                  (Activity.NonConfigurationInstances)lastNonConfigurationInstance, 
+                  new Configuration(), null /* referrer */, null /* voiceInteractor */, 
+                  null /* window */, null /* activityConfigCallback */);
+  return activity;
+}</code></pre><h4 id="2-6-3、执行Activity生命周期方法"><a href="#2-6-3、执行Activity生命周期方法" class="headerlink" title="2.6.3、执行Activity生命周期方法"></a>2.6.3、执行Activity生命周期方法</h4><p>执行Activity的attach()方法，然后通过Instrumentation类来执行activity的onCreate()方法；</p>
+<pre><code>public void callActivityOnCreate(Activity activity, Bundle icicle) {
+  prePerformCreate(activity);
+  activity.performCreate(icicle);
+  postPerformCreate(activity);
+}</code></pre><p>执行activity的perform()方法，在该方法中执行了Activity的onCreate()方法，由此进入了Activity的onCreate()方法，去创建布局等，然后新的APP就展示在用户眼前了，继续执行其onResume()等方法；</p>
+<pre><code>final void performCreate(Bundle icicle) {
+  performCreate(icicle, null);
+}
+
+final void performCreate(Bundle icicle, PersistableBundle persistentState) {
+  mCanEnterPictureInPicture = true;
+  restoreHasCurrentPermissionRequest(icicle);
+  if (persistentState != null) {
+    onCreate(icicle, persistentState);
+  } else {
+    onCreate(icicle);
+  }
+  writeEventLog(LOG_AM_ON_CREATE_CALLED, &quot;performCreate&quot;);
+  mActivityTransitionState.readState(icicle);
+  mVisibleFromClient = !mWindow.getWindowStyle().getBoolean(com.android.internal.R.styleable.Window_windowNoDisplay, false);
+  mFragments.dispatchActivityCreated();
+  mActivityTransitionState.setEnterActivityOptions(this, getActivityOptions());
+}</code></pre>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android%E7%B3%BB%E7%BB%9F%E5%90%AF%E5%8A%A8/" rel="tag"># Android系统启动</a>
+          
+            <a href="/tags/App%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/" rel="tag"># App启动流程</a>
+          
+            <a href="/tags/Android%E6%BA%90%E7%A0%81/" rel="tag"># Android源码</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/01/19/Launcher%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8/" rel="next" title="Launcher进程启动">
+                <i class="fa fa-chevron-left"></i> Launcher进程启动
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/header.jpeg"
+                alt="JesusYoung" />
+            
+              <p class="site-author-name" itemprop="name">JesusYoung</p>
+              <p class="site-description motion-element" itemprop="description">花若相惜，花落相依</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://jesusyoung.github.io/" target="_blank" title="博客首页">
+                      
+                        <i class="fa fa-fw fa-globe"></i>博客首页</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/JesusYoung/" target="_blank" title="Github">
+                      
+                        <i class="fa fa-fw fa-globe"></i>Github</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="https://blog.csdn.net/freelander_j" target="_blank" title="CSDN博客">
+                      
+                        <i class="fa fa-fw fa-globe"></i>CSDN博客</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、启动简介"><span class="nav-text">1、启动简介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1、启动流程："><span class="nav-text">1.1、启动流程：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2、Activity启动流程图"><span class="nav-text">1.2、Activity启动流程图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3、其中涉及到的进程交互方式"><span class="nav-text">1.3、其中涉及到的进程交互方式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、Activity启动源码"><span class="nav-text">2、Activity启动源码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1、Launcher进程阶段"><span class="nav-text">2.1、Launcher进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1、点击桌面图标"><span class="nav-text">2.1.1、点击桌面图标</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2、Launcher进程拿到AMS的代理"><span class="nav-text">2.1.2、Launcher进程拿到AMS的代理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3、向AMS进程发起创建请求"><span class="nav-text">2.1.3、向AMS进程发起创建请求</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2、system-server进程阶段"><span class="nav-text">2.2、system_server进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1、AMS向Zygote发起创建进程请求"><span class="nav-text">2.2.1、AMS向Zygote发起创建进程请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-2、封装暂停Activity事务"><span class="nav-text">2.2.2、封装暂停Activity事务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-3、暂停当前Activity"><span class="nav-text">2.2.3、暂停当前Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-4、向主线程发消息暂停Activity"><span class="nav-text">2.2.4、向主线程发消息暂停Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-5、主线程暂停Activity"><span class="nav-text">2.2.5、主线程暂停Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-6、启动新Activity"><span class="nav-text">2.2.6、启动新Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-7、与Zygote进程建立Socket通信"><span class="nav-text">2.2.7、与Zygote进程建立Socket通信</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-8、向Zygote进程发起创建进程请求"><span class="nav-text">2.2.8、向Zygote进程发起创建进程请求</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3、Zygote进程阶段"><span class="nav-text">2.3、Zygote进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1、Zygote进程fork新的子进程"><span class="nav-text">2.3.1、Zygote进程fork新的子进程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2、向APP进程发起创建Application"><span class="nav-text">2.3.2、向APP进程发起创建Application</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4、APP进程阶段"><span class="nav-text">2.4、APP进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1、向AMS发起attachApplication请求"><span class="nav-text">2.4.1、向AMS发起attachApplication请求</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5、system-server进程阶段"><span class="nav-text">2.5、system_server进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-1、创建APP进程的Application"><span class="nav-text">2.5.1、创建APP进程的Application</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-2、向主线程发送消息"><span class="nav-text">2.5.2、向主线程发送消息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-3、执行Application的生命周期方法"><span class="nav-text">2.5.3、执行Application的生命周期方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-4、启动Activity"><span class="nav-text">2.5.4、启动Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5-5、通知APP进程创建Activity"><span class="nav-text">2.5.5、通知APP进程创建Activity</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6、APP进程阶段"><span class="nav-text">2.6、APP进程阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6-1、向主线程发消息执行创建Activity"><span class="nav-text">2.6.1、向主线程发消息执行创建Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6-2、主线程通过反射创建Activity"><span class="nav-text">2.6.2、主线程通过反射创建Activity</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6-3、执行Activity生命周期方法"><span class="nav-text">2.6.3、执行Activity生命周期方法</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">JesusYoung</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'vL41blm32i4J4ky91UtT55IB-gzGzoHsz',
+        appKey: 'paeVVGnb0ezOG4nx76PQ1sf1',
+        placeholder: '欢迎留言探讨',
+        avatar:'mm',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("vL41blm32i4J4ky91UtT55IB-gzGzoHsz", "paeVVGnb0ezOG4nx76PQ1sf1");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
